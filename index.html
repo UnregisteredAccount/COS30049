@@ -13,64 +13,76 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             color: #333;
-            line-height: 1.6;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
 
         .header {
-            background-color: white;
-            border: 1px solid #ddd;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
             padding: 30px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
-            font-size: 2.5em;
-            color: #333;
+            font-size: 3em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 10px;
         }
 
         .header p {
-            font-size: 1.1em;
+            font-size: 1.2em;
             color: #666;
             max-width: 800px;
             margin: 0 auto;
         }
 
         .nav-tabs {
-            background-color: white;
-            border: 1px solid #ddd;
-            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50px;
             padding: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         .nav-tab {
-            padding: 12px 20px;
-            margin-right: 5px;
-            border: 1px solid #ccc;
-            background-color: #f8f8f8;
+            padding: 15px 30px;
+            margin: 0 5px;
+            border: none;
+            background: transparent;
+            border-radius: 40px;
             cursor: pointer;
-            font-weight: normal;
-            color: #333;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #666;
         }
 
         .nav-tab.active {
-            background-color: #007cba;
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            border-color: #007cba;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
         .nav-tab:hover:not(.active) {
-            background-color: #e8e8e8;
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
         }
 
         .tab-content {
@@ -79,83 +91,94 @@
 
         .tab-content.active {
             display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .dashboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 30px;
+            margin-bottom: 30px;
         }
 
         .card {
-            background-color: white;
-            border: 1px solid #ddd;
-            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
         }
 
         .card h3 {
             color: #333;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
         }
 
         .aqi-indicator {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .aqi-value {
-            font-size: 2.5em;
+            font-size: 3em;
             font-weight: bold;
-            color: white;
-            background-color: #4CAF50;
-            width: 80px;
-            height: 80px;
+            color: #fff;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 5px;
         }
 
-        .aqi-good { background-color: #4CAF50; }
-        .aqi-moderate { background-color: #FF9800; }
-        .aqi-unhealthy { background-color: #F44336; }
-        .aqi-hazardous { background-color: #9C27B0; }
+        .aqi-good { background: linear-gradient(45deg, #4CAF50, #45a049); }
+        .aqi-moderate { background: linear-gradient(45deg, #FFC107, #FF9800); }
+        .aqi-unhealthy { background: linear-gradient(45deg, #FF5722, #F44336); }
+        .aqi-hazardous { background: linear-gradient(45deg, #9C27B0, #673AB7); }
 
         .health-impact {
-            background-color: #e3f2fd;
-            border: 1px solid #bbdefb;
-            border-radius: 3px;
-            padding: 15px;
-            margin: 15px 0;
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
         }
 
         .health-impact h4 {
-            margin-bottom: 8px;
-            color: #1976d2;
+            margin-bottom: 10px;
         }
 
         .chart-container {
             position: relative;
-            height: 350px;
-            margin: 15px 0;
+            height: 400px;
+            margin: 20px 0;
         }
 
         .gantt-container {
-            background-color: white;
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
         .gantt-chart {
             overflow-x: auto;
-            margin-top: 15px;
+            margin-top: 20px;
         }
 
         .gantt-table {
@@ -166,85 +189,89 @@
 
         .gantt-table th,
         .gantt-table td {
-            border: 1px solid #ccc;
-            padding: 8px;
+            border: 1px solid #ddd;
+            padding: 12px;
             text-align: left;
         }
 
         .gantt-table th {
-            background-color: #f0f0f0;
-            font-weight: bold;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
         }
 
         .gantt-bar {
-            height: 20px;
+            height: 25px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
-            padding: 0 8px;
+            padding: 0 10px;
             color: white;
-            font-size: 11px;
-            font-weight: bold;
+            font-size: 12px;
+            font-weight: 600;
         }
 
-        .phase1 { background-color: #4CAF50; }
-        .phase2 { background-color: #2196F3; }
-        .phase3 { background-color: #FF9800; }
-        .phase4 { background-color: #9C27B0; }
+        .phase1 { background: linear-gradient(45deg, #4CAF50, #45a049); }
+        .phase2 { background: linear-gradient(45deg, #2196F3, #1976D2); }
+        .phase3 { background: linear-gradient(45deg, #FF9800, #F57C00); }
+        .phase4 { background: linear-gradient(45deg, #9C27B0, #7B1FA2); }
 
         .pollutant-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        .pollutant-card {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 15px;
-        }
-
-        .pollutant-card h4 {
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .recommendations {
-            background-color: #f0f8ff;
-            border: 1px solid #cce7ff;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
             margin: 20px 0;
         }
 
+        .pollutant-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border-left: 5px solid #667eea;
+            transition: transform 0.3s ease;
+        }
+
+        .pollutant-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .recommendations {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
         .recommendations h3 {
-            margin-bottom: 15px;
-            color: #333;
+            margin-bottom: 20px;
         }
 
         .recommendation-item {
-            background-color: white;
-            border: 1px solid #ddd;
-            padding: 12px;
-            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            backdrop-filter: blur(10px);
         }
 
         .footer {
             text-align: center;
-            padding: 20px;
-            color: #666;
-            margin-top: 30px;
-            border-top: 1px solid #ddd;
+            padding: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 50px;
         }
 
         @media (max-width: 768px) {
             .nav-tabs {
-                text-align: center;
+                flex-wrap: wrap;
+                justify-content: center;
             }
             
             .nav-tab {
-                display: inline-block;
-                margin: 2px;
-                padding: 10px 15px;
+                margin: 5px;
+                padding: 12px 20px;
                 font-size: 14px;
             }
             
@@ -253,7 +280,7 @@
             }
             
             .header h1 {
-                font-size: 2em;
+                font-size: 2.5em;
             }
         }
     </style>
@@ -262,7 +289,7 @@
     <div class="container">
         <div class="header">
             <h1>Air Quality & Health Analytics</h1>
-            <p>Comprehensive analysis of air quality data and its impact on public health with monitoring and insights</p>
+            <p>Comprehensive analysis of air quality data and its impact on public health with advanced monitoring and predictive insights</p>
         </div>
 
         <div class="nav-tabs">
@@ -323,12 +350,12 @@
                     <p>Poor air quality increases risk of heart disease by 15-20% in exposed populations. PM2.5 particles can penetrate deep into lungs and bloodstream.</p>
                 </div>
 
-                <div class="health-impact">
+                <div class="health-impact" style="background: linear-gradient(135deg, #4ECDC4, #44A08D);">
                     <h4>Respiratory Effects</h4>
                     <p>Increased asthma incidents, reduced lung function, and higher rates of respiratory infections correlate with elevated pollutant levels.</p>
                 </div>
 
-                <div class="health-impact">
+                <div class="health-impact" style="background: linear-gradient(135deg, #FFECD2, #FCB69F);">
                     <h4>Vulnerable Populations</h4>
                     <p>Children, elderly, and individuals with pre-existing conditions face heightened risks from air pollution exposure.</p>
                 </div>
@@ -426,7 +453,7 @@
                                         Months 1-3
                                     </div>
                                 </td>
-                                <td>Complete</td>
+                                <td>✅ Complete</td>
                             </tr>
                             <tr>
                                 <td>Phase 2</td>
@@ -437,7 +464,7 @@
                                         Months 4-7
                                     </div>
                                 </td>
-                                <td>In Progress</td>
+                                <td>🔄 In Progress</td>
                             </tr>
                             <tr>
                                 <td>Phase 3</td>
@@ -448,7 +475,7 @@
                                         Months 8-10
                                     </div>
                                 </td>
-                                <td>Pending</td>
+                                <td>⏳ Pending</td>
                             </tr>
                             <tr>
                                 <td>Phase 4</td>
@@ -459,13 +486,13 @@
                                         Months 11-12
                                     </div>
                                 </td>
-                                <td>Pending</td>
+                                <td>⏳ Pending</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div style="margin-top: 20px;">
+                <div style="margin-top: 30px;">
                     <h4>Key Milestones</h4>
                     <div class="recommendation-item">
                         <strong>Month 3:</strong> Sensor network deployment complete
@@ -482,9 +509,6 @@
                 </div>
             </div>
         </div>
-
-        
-    </div>
 
     <script>
         // Tab switching functionality
@@ -544,10 +568,10 @@
                     datasets: [{
                         label: 'AQI',
                         data: [45, 52, 68, 75, 82, 78, 71, 63],
-                        borderColor: '#007cba',
-                        backgroundColor: 'rgba(0, 124, 186, 0.1)',
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
                         fill: true,
-                        tension: 0.1
+                        tension: 0.4
                     }]
                 },
                 options: {
@@ -645,10 +669,10 @@
                             {x: 110, y: 150},
                             {x: 130, y: 180}
                         ],
-                        backgroundColor: '#007cba',
-                        borderColor: '#005a87',
-                        pointRadius: 6,
-                        pointHoverRadius: 8
+                        backgroundColor: '#667eea',
+                        borderColor: '#764ba2',
+                        pointRadius: 8,
+                        pointHoverRadius: 10
                     }]
                 },
                 options: {
@@ -687,4 +711,3 @@
     </script>
 </body>
 </html>
-
