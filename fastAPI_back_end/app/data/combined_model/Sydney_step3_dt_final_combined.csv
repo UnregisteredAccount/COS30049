@@ -1,0 +1,2 @@
+Date,City,Pollutant,count,variance,min,max,median,AQI,Rounded_AQI,AQI_Severity
+2025-11-19,Sydney,pm2.5,137.51087666314527,827.9935945818203,1.183143011805812,47.70953924254585,19.75,26.07,26,1 (Very Good)
