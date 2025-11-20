@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np # Import numpy for non-negative constraint
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from app.evaluation.evaluator import evaluator
@@ -16,13 +17,14 @@ class random_forest_pollutant_median:
         self.filepath = filepath
         self.df = pd.read_csv(self.filepath)
         self.df.dropna(inplace=True)
+        # Features used to predict median: summary statistics of the time series
         self.features = ["count", "min", "max", "variance"]
         self.target = "median"
         self.results = [] # Store evaluation results
         self.pollutant = pollutant
         self.models = {} # Dictionary that stores trained models for each city
 
-        # Removing Outliers using IQR
+        # Removing Outliers using IQR (applied globally for simplicity)
         numeric_cols = self.features + [self.target]
         Q1 = self.df[numeric_cols].quantile(0.25)
         Q3 = self.df[numeric_cols].quantile(0.75)
@@ -75,24 +77,33 @@ class random_forest_pollutant_median:
     # Predicts median values for new data using trained models
     def predict(self, city, dataframe):
         if city not in self.models:
-            print(f"No trained model found for {city}. Please run process_city('{city}') first.")
-            return None
-        
+            print(f"No trained model found for {city}. Please run compute() first.")
+            return pd.DataFrame() # Return empty DataFrame on error
+
         try:
-            new_data = dataframe
+            # Create a copy of the input DataFrame to ensure safety
+            new_data = dataframe.copy() 
         except Exception as e:
-            print(f"Error reading CSV file: {e}")
-            return None
+            print(f"Error processing input data: {e}")
+            return pd.DataFrame() # Return empty DataFrame on error
 
         # Check for required feature columns
         missing_cols = [col for col in self.features if col not in new_data.columns]
         if missing_cols:
-            print(f"Missing required columns in .csv file: {missing_cols}")
-            return None
+            print(f"Missing required columns in input data: {missing_cols}")
+            return pd.DataFrame() # Return empty DataFrame if features are missing
 
-        # Make predictions, add the results to DataFrame, then return it
+        # Make predictions
         model = self.models[city]
         prediction = model.predict(new_data[self.features])
+        
+        # --- CRITICAL FIX FOR NON-NEGATIVE PREDICTION ---
+        # The median of a pollutant concentration cannot be negative.
+        # We use np.maximum to ensure all predictions are clamped to a minimum of 0.
+        prediction = np.maximum(0, prediction) # 
+        # --- END FIX ---
+        
+        # Add the results to DataFrame
         new_data["median"] = prediction
         return new_data
 
@@ -127,7 +138,7 @@ class random_forest_pollutant_median:
         dynamic_filename = f"random_forest_of_{self.pollutant}_pollutant_median_results_in_australian_cities.csv"
         filename = filepath / dynamic_filename
     
-        os.makedirs(filepath, exist_ok=True)   
+        os.makedirs(filepath, exist_ok=True)  
         results_df.to_csv(filename, index=False)
         print(f"Results saved to {filename}")
 

@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
@@ -81,9 +82,10 @@ class linear_regression_pollutant_predictor:
 
     def predict(self, city, dataframe):
         try:
-            new_data = dataframe
+            new_data = dataframe.copy() # Use .copy() for safety
             new_data = new_data[new_data["Pollutant"].isin(self.selected_pollutants)]
             new_data["Date"] = pd.to_datetime(new_data["Date"])
+            # ... (date feature extraction remains the same) ...
             new_data["dayofyear"] = new_data["Date"].dt.dayofyear
             new_data["year"] = new_data["Date"].dt.year
             new_data["month"] = new_data["Date"].dt.month
@@ -98,8 +100,9 @@ class linear_regression_pollutant_predictor:
                 if col not in new_data.columns:
                     new_data[col] = 0  # Fill missing dummy columns with 0
         except Exception as e:
+            # Returning an empty DataFrame on error is safer than returning None
             print(f"Error reading or processing CSV file: {e}")
-            return None
+            return pd.DataFrame() 
 
         for target in self.targets:
             key = f"{city}_{target}"
@@ -113,9 +116,20 @@ class linear_regression_pollutant_predictor:
             if not os.path.exists(model_file_path):
                 print(f"Model file not found for {key}")
                 continue
+            
+            # Load the model
             model = joblib.load(model_file_path)
 
-            new_data[f"{target}"] = model.predict(new_data[self.features])
+            # 1. CALCULATE PREDICTIONS
+            predictions = model.predict(new_data[self.features])
+
+            # 2. CLAMP IF TARGET IS VARIANCE
+            if target == "variance":
+                # np.maximum checks the entire array and replaces negative values with 0
+                predictions = np.maximum(0, predictions)
+
+            # 3. ASSIGN THE FINAL RESULT
+            new_data[f"{target}"] = predictions
 
         return new_data
 
