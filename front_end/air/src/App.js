@@ -261,7 +261,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
     const angle = -baseAngle; 
 
     // Custom function to render the needle and central pivot
-    const renderNeedle = ({ cx, cy }) => {
+    const renderNeedle = ({ cx, cy }) => {  
         const needleLength = 78; 
         const rad = Math.PI / 180;
         
