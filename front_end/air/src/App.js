@@ -241,24 +241,55 @@ const InputForm = ({ onSubmit, loading }) => {
 
 // --- Overall AQI Summary Component ---
 const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
+    // NOTE: Assume getAQICategory is defined elsewhere and works correctly
     const { category, color, description } = getAQICategory(maxAqi);
     
     // Define all standard sections up to AQI 500.
     const gaugeData = [
-        { name: 'Very Good', value: 32, color: '#007bff' }, // Blue (0-32)
-        { name: 'Good', value: 33, color: '#28a745' }, // Green (33-65)
-        { name: 'Fair', value: 33, color: '#ffc107' }, // Yellow (66-98)
-        { name: 'Poor', value: 50, color: '#fd7e14' }, // Orange (99-148)
-        { name: 'Very Poor', value: 51, color: '#dc3545' }, // Red (149-199)
-        { name: 'Extremely Poor', value: 301, color: '#800000' }, // Maroon (200-500)
+        { name: 'Very Good', value: 32, color: '#007bff', range: '0 - 32' }, // Blue
+        { name: 'Good', value: 33, color: '#28a745', range: '33 - 65' }, // Green
+        { name: 'Fair', value: 33, color: '#ffc107', range: '66 - 98' }, // Yellow
+        { name: 'Poor', value: 50, color: '#fd7e14', range: '99 - 148' }, // Orange
+        { name: 'Very Poor', value: 51, color: '#dc3545', range: '149 - 199' }, // Red
+        { name: 'Extremely Poor', value: 301, color: '#800000', range: '200 - 500' }, // Maroon
     ];
 
     const dataValue = maxAqi > 500 ? 500 : maxAqi;
 
     // Angle Calculation: Maps AQI 0 to 180 degrees, and AQI 500 to 0 degrees.
     const baseAngle = 180 - (dataValue / 500) * 180; 
-    
     const angle = -baseAngle; 
+
+    // --- Custom Tooltip Content Component (UPDATED FOR DYNAMIC COLOR) ---
+    const CustomTooltip = ({ active, payload }) => {
+        if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            
+            // Ensure data.range exists, confirming it's a gauge segment
+            if (data.range) { 
+                // Determine text color based on background luminance (simple check)
+                const isLight = data.color === '#ffc107'; // Check if color is Yellow ('Fair')
+                const textColor = isLight ? '#000' : '#fff';
+
+                return (
+                    <div style={{ 
+                        // Use the segment's color as the background
+                        backgroundColor: data.color, 
+                        color: textColor, 
+                        padding: '5px 10px', 
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
+                    }}>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>{data.name}</p>
+                        <p style={{ margin: 0 }}>AQI: {data.range}</p>
+                    </div>
+                );
+            }
+        }
+        return null;
+    };
+
 
     // Custom function to render the needle and central pivot
     const renderNeedle = ({ cx, cy }) => {
@@ -291,13 +322,13 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                 Overall Predicted AQI for {city}
             </h3>
             
-            {/* RESPONSIVE FLEX CONTAINER */}
             <div style={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
                 alignItems: 'center', 
                 justifyContent: 'center'
             }}>
+                
                 {/* Gauge Column */}
                 <div style={{ 
                     width: '100%', 
@@ -306,10 +337,14 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                 }}>
                     <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
+                            {/* 1. Tooltip with Custom Content */}
+                            <Tooltip content={<CustomTooltip />} />
+                            
                             {/* Main gauge ring */}
                             <Pie
                                 data={gaugeData}
                                 dataKey="value"
+                                nameKey="name" 
                                 startAngle={180}
                                 endAngle={0}
                                 innerRadius={70}
@@ -319,7 +354,10 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                                 paddingAngle={0} 
                             >
                                 {gaugeData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                    <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={entry.color} 
+                                    />
                                 ))}
                             </Pie>
                             
@@ -369,7 +407,6 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
         </div>
     );
 };
-
 
 // --- Pollutant Detail Card Component ---
 const PollutantDetailCard = ({ prediction }) => {
