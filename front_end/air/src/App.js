@@ -261,7 +261,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
     const angle = -baseAngle; 
 
     // Custom function to render the needle and central pivot
-    const renderNeedle = ({ cx, cy }) => {  
+    const renderNeedle = ({ cx, cy }) => {
         const needleLength = 78; 
         const rad = Math.PI / 180;
         
@@ -546,29 +546,101 @@ const HealthRecommendations = ({ maxAqi }) => {
     );
 };
 
-const HistoricalComparison = ({ currentAQI }) => {
-    const historicalData = [
-        { period: 'Last Week', aqi: Math.max(0, currentAQI - 15 + Math.random() * 10) },
-        { period: 'Last Month', aqi: Math.max(0, currentAQI - 20 + Math.random() * 15) },
-        { period: 'Current', aqi: currentAQI },
-    ];
+// Historical Comparison Component (with export)
+const HistoricalComparison = ({ currentAQI, defaultPollutant }) => {
+  const pollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO'];
+  const [selectedPollutant, setSelectedPollutant] = useState(defaultPollutant || 'PM2.5');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-    return (
-        <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>Historical Comparison (Max AQI)</h3>
-            <ResponsiveContainer width="100%" height={250}> 
-                <BarChart data={historicalData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="aqi" fill="#3498db" name={`Max AQI`} />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    );
+  const generateHistoricalData = (aqi, endDate) => {
+    const data = [];
+    for (let i = 4; i >= 0; i--) {
+      const date = new Date(endDate);
+      date.setDate(date.getDate() - i);
+      data.push({
+        period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+        aqi: Math.max(0, aqi + Math.floor((Math.random() - 0.5) * 40)),
+      });
+    }
+    return data;
+  };
+
+  const historicalData = generateHistoricalData(currentAQI, selectedDate);
+
+  // Export to CSV function
+  const exportToCSV = () => {
+    const headers = ['Date', `${selectedPollutant} AQI`];
+    const rows = historicalData.map(d => [d.period, d.aqi]);
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers, ...rows].map(e => e.join(',')).join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `historical_comparison_${selectedPollutant}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+      <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>📈 Historical Comparison</h3>
+
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select Pollutant</label>
+        <select
+          value={selectedPollutant}
+          onChange={(e) => setSelectedPollutant(e.target.value)}
+          style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+        >
+          {pollutants.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select End Date</label>
+        <input
+          type="date"
+          value={selectedDate}
+          max={new Date().toISOString().split('T')[0]}
+          min="2023-01-01"
+          onChange={(e) => setSelectedDate(e.target.value)}
+          style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+        />
+      </div>
+
+      <button 
+        onClick={exportToCSV} 
+        style={{ 
+          marginBottom: '15px', 
+          padding: '10px 15px', 
+          backgroundColor: '#2ecc71', 
+          color: '#fff', 
+          border: 'none', 
+          borderRadius: '4px', 
+          cursor: 'pointer', 
+          fontWeight: '600' 
+        }}
+      >
+        💾 Export to CSV
+      </button>
+
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={historicalData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="period" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="aqi" fill="#3498db" name={`${selectedPollutant} AQI`} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 };
+
 
 const CombinedChart = ({ predictions }) => {
     const data = predictions.map(p => ({
@@ -611,23 +683,63 @@ const CombinedChart = ({ predictions }) => {
     );
 };
 
-const AQITrendChart = ({ currentAQI }) => {
-    const trendData = Array.from({ length: 7 }, (_, i) => ({
-        day: `Day ${i + 1}`,
-        aqi: Math.max(0, currentAQI + (Math.random() - 0.5) * 40),
-    }));
+
+const AQITrendChart = ({ predictions }) => {
+    const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
+
+    // Default selected pollutant: max AQI pollutant if available, else first
+    const defaultPollutant = predictions?.length
+        ? predictions.reduce((a, b) => (parseFloat(a.AQI) > parseFloat(b.AQI) ? a : b)).pollutant
+        : allPollutants[0];
+
+    const [selectedPollutant, setSelectedPollutant] = useState(defaultPollutant);
+
+    // Find AQI value for selected pollutant
+    const currentAQI = predictions?.find(p => p.pollutant === selectedPollutant)?.AQI || 0;
+
+    // Generate last 7 days of data
+    const today = new Date();
+    const trendData = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() - (6 - i)); // oldest to newest
+        return {
+            date: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+            aqi: Math.max(0, currentAQI + (Math.random() - 0.5) * 40),
+        };
+    });
 
     return (
         <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>7-Day AQI Forecast (Max Pollutant)</h3>
+            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '15px' }}>7-Day AQI Forecast</h3>
+
+            {/* Pollutant Selector */}
+            <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select Pollutant</label>
+                <select
+                    value={selectedPollutant}
+                    onChange={(e) => setSelectedPollutant(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                >
+                    <option value="All Pollutants">All Pollutants</option>
+                    {allPollutants.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+            </div>
+
             <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={trendData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
+                    <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="aqi" stroke="#e74c3c" strokeWidth={3} dot={{ r: 5 }} name="Max Predicted AQI" />
+                    <Line 
+                        type="monotone" 
+                        dataKey="aqi" 
+                        stroke="#e74c3c" 
+                        strokeWidth={3} 
+                        dot={{ r: 5 }} 
+                        name={`${selectedPollutant} AQI`} 
+                    />
                 </LineChart>
             </ResponsiveContainer>
         </div>
@@ -818,5 +930,6 @@ const App = () => {
         </div>
     );
 };
+
 
 export default App;
