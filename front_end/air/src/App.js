@@ -241,55 +241,24 @@ const InputForm = ({ onSubmit, loading }) => {
 
 // --- Overall AQI Summary Component ---
 const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
-    // NOTE: Assume getAQICategory is defined elsewhere and works correctly
     const { category, color, description } = getAQICategory(maxAqi);
     
     // Define all standard sections up to AQI 500.
     const gaugeData = [
-        { name: 'Very Good', value: 32, color: '#007bff', range: '0 - 32' }, // Blue
-        { name: 'Good', value: 33, color: '#28a745', range: '33 - 65' }, // Green
-        { name: 'Fair', value: 33, color: '#ffc107', range: '66 - 98' }, // Yellow
-        { name: 'Poor', value: 50, color: '#fd7e14', range: '99 - 148' }, // Orange
-        { name: 'Very Poor', value: 51, color: '#dc3545', range: '149 - 199' }, // Red
-        { name: 'Extremely Poor', value: 301, color: '#800000', range: '200 - 500' }, // Maroon
+        { name: 'Very Good', value: 32, color: '#007bff' }, // Blue (0-32)
+        { name: 'Good', value: 33, color: '#28a745' }, // Green (33-65)
+        { name: 'Fair', value: 33, color: '#ffc107' }, // Yellow (66-98)
+        { name: 'Poor', value: 50, color: '#fd7e14' }, // Orange (99-148)
+        { name: 'Very Poor', value: 51, color: '#dc3545' }, // Red (149-199)
+        { name: 'Extremely Poor', value: 301, color: '#800000' }, // Maroon (200-500)
     ];
 
     const dataValue = maxAqi > 500 ? 500 : maxAqi;
 
     // Angle Calculation: Maps AQI 0 to 180 degrees, and AQI 500 to 0 degrees.
     const baseAngle = 180 - (dataValue / 500) * 180; 
+    
     const angle = -baseAngle; 
-
-    // --- Custom Tooltip Content Component (UPDATED FOR DYNAMIC COLOR) ---
-    const CustomTooltip = ({ active, payload }) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
-            
-            // Ensure data.range exists, confirming it's a gauge segment
-            if (data.range) { 
-                // Determine text color based on background luminance (simple check)
-                const isLight = data.color === '#ffc107'; // Check if color is Yellow ('Fair')
-                const textColor = isLight ? '#000' : '#fff';
-
-                return (
-                    <div style={{ 
-                        // Use the segment's color as the background
-                        backgroundColor: data.color, 
-                        color: textColor, 
-                        padding: '5px 10px', 
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
-                    }}>
-                        <p style={{ margin: 0, fontWeight: 'bold' }}>{data.name}</p>
-                        <p style={{ margin: 0 }}>AQI: {data.range}</p>
-                    </div>
-                );
-            }
-        }
-        return null;
-    };
-
 
     // Custom function to render the needle and central pivot
     const renderNeedle = ({ cx, cy }) => {
@@ -322,13 +291,13 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                 Overall Predicted AQI for {city}
             </h3>
             
+            {/* RESPONSIVE FLEX CONTAINER */}
             <div style={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
                 alignItems: 'center', 
                 justifyContent: 'center'
             }}>
-                
                 {/* Gauge Column */}
                 <div style={{ 
                     width: '100%', 
@@ -337,14 +306,10 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                 }}>
                     <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
-                            {/* 1. Tooltip with Custom Content */}
-                            <Tooltip content={<CustomTooltip />} />
-                            
                             {/* Main gauge ring */}
                             <Pie
                                 data={gaugeData}
                                 dataKey="value"
-                                nameKey="name" 
                                 startAngle={180}
                                 endAngle={0}
                                 innerRadius={70}
@@ -354,10 +319,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                                 paddingAngle={0} 
                             >
                                 {gaugeData.map((entry, index) => (
-                                    <Cell 
-                                        key={`cell-${index}`} 
-                                        fill={entry.color} 
-                                    />
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
                             
@@ -407,6 +369,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
         </div>
     );
 };
+
 
 // --- Pollutant Detail Card Component ---
 const PollutantDetailCard = ({ prediction }) => {
@@ -581,48 +544,42 @@ const HealthRecommendations = ({ maxAqi }) => {
             </div>
         </div>
     );
-};
-
-
-const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'PM2.5' }) => {
-  const pollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO'];
-  const [selectedPollutant, setSelectedPollutant] = useState(defaultPollutant);
+};const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'SO2' }) => {
+  const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [historicalData, setHistoricalData] = useState([]);
+
   const generateHistoricalData = (aqi, endDate) => {
-  const data = [];
-  const baseSeed = new Date(endDate).getTime() + aqi;
-  
-  // Ensure minimum AQI for variation
-  const baseAQI = Math.max(aqi, 30);
-  
-  for (let i = 4; i >= 0; i--) {
-    const date = new Date(endDate);
-    date.setDate(date.getDate() - i);
-    
-    // Use percentage-based variation
-    const percentVariation = baseAQI * 0.35; // 35% variation range
-    const variation1 = Math.sin(baseSeed * 0.001 + i * 1.3) * percentVariation * 0.4;
-    const variation2 = Math.sin(baseSeed * 0.003 + i * 0.7) * percentVariation * 0.3;
-    const variation3 = Math.cos(baseSeed * 0.002 + i * 2.1) * percentVariation * 0.3;
-    
-    const totalVariation = variation1 + variation2 + variation3;
-    
-    data.push({
-      period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
-      aqi: Math.max(5, Math.round(baseAQI + totalVariation)),
-    });
-  }
-  return data;
-};
+    const data = [];
+    const baseSeed = new Date(endDate).getTime() + aqi;
+    const baseAQI = Math.max(aqi, 30);
+
+    for (let i = 4; i >= 0; i--) {
+      const date = new Date(endDate);
+      date.setDate(date.getDate() - i);
+
+      const percentVariation = baseAQI * 0.35;
+      const variation1 = Math.sin(baseSeed * 0.001 + i * 1.3) * percentVariation * 0.4;
+      const variation2 = Math.sin(baseSeed * 0.003 + i * 0.7) * percentVariation * 0.3;
+      const variation3 = Math.cos(baseSeed * 0.002 + i * 2.1) * percentVariation * 0.3;
+
+      const totalVariation = variation1 + variation2 + variation3;
+
+      data.push({
+        period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+        aqi: Math.max(5, Math.round(baseAQI + totalVariation)),
+      });
+    }
+    return data;
+  };
 
   useEffect(() => {
     const data = generateHistoricalData(currentAQI, selectedDate);
     setHistoricalData(data);
-  }, [currentAQI, selectedDate]); // Only update when AQI or date changes
+  }, [currentAQI, selectedDate]);
 
   const exportToCSV = () => {
-    const headers = ['Date', `${selectedPollutant} AQI`];
+    const headers = ['Date', `${defaultPollutant} AQI`];
     const rows = historicalData.map(d => [d.period, d.aqi]);
     const csvContent =
       'data:text/csv;charset=utf-8,' +
@@ -631,7 +588,7 @@ const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'PM2.5' }) =>
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `historical_comparison_${selectedPollutant}.csv`);
+    link.setAttribute('download', `historical_comparison_${defaultPollutant}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -639,29 +596,25 @@ const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'PM2.5' }) =>
 
   return (
     <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>📈 Historical Comparison</h3>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select Pollutant</label>
-        <select
-          value={selectedPollutant}
-          onChange={(e) => setSelectedPollutant(e.target.value)}
-          style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
-        >
-          {pollutants.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-      </div>
+      <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>📈 Historical Comparison ({defaultPollutant})</h3>
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select End Date</label>
         <input
-          type="date"
-          value={selectedDate}
-          max={new Date().toISOString().split('T')[0]}
-          min="2023-01-01"
-          onChange={(e) => setSelectedDate(e.target.value)}
-          style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
-        />
+  type="date"
+  value={selectedDate}
+  min="2022-01-01"
+  max="2025-12-31"
+  onChange={(e) => setSelectedDate(e.target.value)}
+  style={{
+    width: '100%',
+    padding: '10px',
+    borderRadius: '4px',
+    border: '1px solid #ddd',
+    fontSize: '14px'
+  }}
+/>
+
       </div>
 
       <button 
@@ -678,12 +631,14 @@ const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'PM2.5' }) =>
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="aqi" fill="#3498db" name={`${selectedPollutant} AQI`} />
+          <Bar dataKey="aqi" fill="#3498db" name={`${defaultPollutant} AQI`} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 };
+
+
 
 
 const CombinedChart = ({ predictions }) => {
