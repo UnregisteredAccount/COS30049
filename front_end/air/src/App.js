@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
     ResponsiveContainer, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, 
@@ -546,35 +546,51 @@ const HealthRecommendations = ({ maxAqi }) => {
     );
 };
 
-// Historical Comparison Component (with export)
-const HistoricalComparison = ({ currentAQI, defaultPollutant }) => {
+
+const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'PM2.5' }) => {
   const pollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO'];
-  const [selectedPollutant, setSelectedPollutant] = useState(defaultPollutant || 'PM2.5');
+  const [selectedPollutant, setSelectedPollutant] = useState(defaultPollutant);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-
+  const [historicalData, setHistoricalData] = useState([]);
   const generateHistoricalData = (aqi, endDate) => {
-    const data = [];
-    for (let i = 4; i >= 0; i--) {
-      const date = new Date(endDate);
-      date.setDate(date.getDate() - i);
-      data.push({
-        period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
-        aqi: Math.max(0, aqi + Math.floor((Math.random() - 0.5) * 40)),
-      });
-    }
-    return data;
-  };
+  const data = [];
+  const baseSeed = new Date(endDate).getTime() + aqi;
+  
+  // Ensure minimum AQI for variation
+  const baseAQI = Math.max(aqi, 30);
+  
+  for (let i = 4; i >= 0; i--) {
+    const date = new Date(endDate);
+    date.setDate(date.getDate() - i);
+    
+    // Use percentage-based variation
+    const percentVariation = baseAQI * 0.35; // 35% variation range
+    const variation1 = Math.sin(baseSeed * 0.001 + i * 1.3) * percentVariation * 0.4;
+    const variation2 = Math.sin(baseSeed * 0.003 + i * 0.7) * percentVariation * 0.3;
+    const variation3 = Math.cos(baseSeed * 0.002 + i * 2.1) * percentVariation * 0.3;
+    
+    const totalVariation = variation1 + variation2 + variation3;
+    
+    data.push({
+      period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+      aqi: Math.max(5, Math.round(baseAQI + totalVariation)),
+    });
+  }
+  return data;
+};
 
-  const historicalData = generateHistoricalData(currentAQI, selectedDate);
+  useEffect(() => {
+    const data = generateHistoricalData(currentAQI, selectedDate);
+    setHistoricalData(data);
+  }, [currentAQI, selectedDate]); // Only update when AQI or date changes
 
-  // Export to CSV function
   const exportToCSV = () => {
     const headers = ['Date', `${selectedPollutant} AQI`];
     const rows = historicalData.map(d => [d.period, d.aqi]);
     const csvContent =
       'data:text/csv;charset=utf-8,' +
       [headers, ...rows].map(e => e.join(',')).join('\n');
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -613,16 +629,7 @@ const HistoricalComparison = ({ currentAQI, defaultPollutant }) => {
 
       <button 
         onClick={exportToCSV} 
-        style={{ 
-          marginBottom: '15px', 
-          padding: '10px 15px', 
-          backgroundColor: '#2ecc71', 
-          color: '#fff', 
-          border: 'none', 
-          borderRadius: '4px', 
-          cursor: 'pointer', 
-          fontWeight: '600' 
-        }}
+        style={{ marginBottom: '15px', padding: '10px 15px', backgroundColor: '#2ecc71', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
       >
         💾 Export to CSV
       </button>
@@ -682,8 +689,6 @@ const CombinedChart = ({ predictions }) => {
         </div>
     );
 };
-
-
 const AQITrendChart = ({ predictions }) => {
     const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
 
@@ -693,24 +698,62 @@ const AQITrendChart = ({ predictions }) => {
         : allPollutants[0];
 
     const [selectedPollutant, setSelectedPollutant] = useState(defaultPollutant);
+    const [forecastData, setForecastData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Find AQI value for selected pollutant
-    const currentAQI = predictions?.find(p => p.pollutant === selectedPollutant)?.AQI || 0;
+    const city = predictions?.[0]?.city || 'Sydney';
 
-    // Generate last 7 days of data
-    const today = new Date();
-    const trendData = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(today);
-        date.setDate(today.getDate() - (6 - i)); // oldest to newest
-        return {
-            date: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
-            aqi: Math.max(0, currentAQI + (Math.random() - 0.5) * 40),
+    // Fetch 7-day forecast from backend
+    useEffect(() => {
+        const fetchForecast = async () => {
+            if (!selectedPollutant || selectedPollutant === 'All Pollutants') return;
+            
+            setLoading(true);
+            setError(null);
+            
+            try {
+                const today = new Date();
+                const forecastPromises = [];
+                
+                // Generate next 7 days
+                for (let i = 0; i < 7; i++) {
+                    const forecastDate = new Date(today);
+                    forecastDate.setDate(today.getDate() + i);
+                    const dateString = forecastDate.toISOString().split('T')[0];
+                    
+                    forecastPromises.push(
+                        api.predictAirQuality(dateString, city, [selectedPollutant])
+                            .then(results => ({
+                                date: forecastDate.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+                                aqi: parseFloat(results[0]?.AQI) || 0,
+                                fullDate: dateString
+                            }))
+                            .catch(() => ({
+                                date: forecastDate.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+                                aqi: 0,
+                                fullDate: dateString,
+                                error: true
+                            }))
+                    );
+                }
+                
+                const results = await Promise.all(forecastPromises);
+                setForecastData(results);
+            } catch (err) {
+                setError('Failed to fetch forecast data');
+                console.error('Forecast error:', err);
+            } finally {
+                setLoading(false);
+            }
         };
-    });
+        
+        fetchForecast();
+    }, [selectedPollutant, city]);
 
     return (
         <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '15px' }}>7-Day AQI Forecast</h3>
+            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '15px' }}>7-Day AQI Forecast (Live Predictions)</h3>
 
             {/* Pollutant Selector */}
             <div style={{ marginBottom: '15px' }}>
@@ -719,33 +762,46 @@ const AQITrendChart = ({ predictions }) => {
                     value={selectedPollutant}
                     onChange={(e) => setSelectedPollutant(e.target.value)}
                     style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                    disabled={loading}
                 >
-                    <option value="All Pollutants">All Pollutants</option>
                     {allPollutants.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
             </div>
 
-            <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line 
-                        type="monotone" 
-                        dataKey="aqi" 
-                        stroke="#e74c3c" 
-                        strokeWidth={3} 
-                        dot={{ r: 5 }} 
-                        name={`${selectedPollutant} AQI`} 
-                    />
-                </LineChart>
-            </ResponsiveContainer>
+            {loading && (
+                <div style={{ textAlign: 'center', padding: '50px', color: '#3498db' }}>
+                    <div>Loading forecast data...</div>
+                </div>
+            )}
+
+            {error && (
+                <div style={{ padding: '15px', backgroundColor: '#fee', color: '#e74c3c', borderRadius: '4px', marginBottom: '15px' }}>
+                    {error}
+                </div>
+            )}
+
+            {!loading && forecastData.length > 0 && (
+                <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={forecastData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line 
+                            type="monotone" 
+                            dataKey="aqi" 
+                            stroke="#e74c3c" 
+                            strokeWidth={3} 
+                            dot={{ r: 5 }} 
+                            name={`${selectedPollutant} AQI`} 
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            )}
         </div>
     );
 };
-
 
 const App = () => {
     const [predictions, setPredictions] = useState(null);
