@@ -53,19 +53,15 @@ const api = {
 const getAQICategory = (aqi) => {
     // 1. Very Good (0-32) - Color: Blue
     if (aqi <= 32) return { category: 'Very Good', color: '#007bff', description: 'Air quality is satisfactory', range: [0, 32] };
-    
     // 2. Good (33-65) - Color: Green
     if (aqi <= 65) return { category: 'Good', color: '#28a745', description: 'Acceptable for most people', range: [33, 65] };
-    
     // 3. Fair (66-98) - Color: Yellow
-    if (aqi <= 98) return { category: 'Fair', color: '#ffc107', description: 'Sensitive groups may experience health effects', range: [66, 98] };
-    
+    if (aqi <= 98) return { category: 'Fair', color: '#ffc107', description: 'Sensitive groups may experience health effects', range: [66, 98] }; 
     // 4. Poor (99-148) - Color: Orange
     if (aqi <= 148) return { category: 'Poor', color: '#fd7e14', description: 'Everyone may begin to experience health effects', range: [99, 148] };
-    
     // 5. Very Poor (149-199) - Color: Red
     if (aqi <= 199) return { category: 'Very Poor', color: '#dc3545', description: 'Health alert: everyone may experience serious effects', range: [149, 199] };
-    
+
     // 6. Extremely Poor (200+) - Color: Maroon
     return { category: 'Extremely Poor', color: '#800000', description: 'Hazardous air quality. Emergency conditions', range: [200, Infinity] };
 };
@@ -185,7 +181,7 @@ const InputForm = ({ onSubmit, loading }) => {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-                <label style={labelStyle}>🌫️ Select Pollutant(s) *</label>
+                <label style={labelStyle}>Select Pollutant(s) *</label>
                 <div style={{...checkboxGroupStyle, borderColor: errors.pollutants ? '#ff0000' : '#ddd'}}>
                     {/* Select All Option: Checked state relies on the isAllSelected variable */}
                     <label style={{ 
@@ -266,8 +262,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
 
     // Custom function to render the needle and central pivot
     const renderNeedle = ({ cx, cy }) => {
-        // Needle length matches innerRadius (70)
-        const needleLength = 70; 
+        const needleLength = 78; 
         const rad = Math.PI / 180;
         
         // Calculate the end point (x, y) of the needle based on the new negative angle

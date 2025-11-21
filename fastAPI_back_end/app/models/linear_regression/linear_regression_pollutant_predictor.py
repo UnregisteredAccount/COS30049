@@ -178,5 +178,5 @@ class linear_regression_pollutant_predictor:
     def compute(self):
         for city in tqdm(self.df["City"].unique(), desc="Training models"):
             self.process_city(city)
-        self.export_summary_csv()
-        self.save()
+        # self.export_summary_csv()
+        # self.save()

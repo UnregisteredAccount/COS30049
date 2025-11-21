@@ -72,7 +72,7 @@ class random_forest_pollutant_median:
         })
 
         # Generate and save plot
-        self.plot(city, y_test, y_pred)
+        # self.plot(city, y_test, y_pred)
 
     # Predicts median values for new data using trained models
     def predict(self, city, dataframe):
@@ -146,4 +146,4 @@ class random_forest_pollutant_median:
     def compute(self):
         for city in self.df["City"].unique():
             self.process_city(city)
-        self.save()
+        # self.save()   
