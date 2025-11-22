@@ -27,7 +27,7 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
     const w = Math.max(200, width) - margin.left - margin.right;
     const h = height - margin.top - margin.bottom;
 
-    // parse dates: prefer fullDate (ISO), else try Date.parse, else parse 'Mon DD'
+    // parse dates
     const parseDatum = (d) => {
       if (d.fullDate) return new Date(d.fullDate);
       const iso = Date.parse(d.date || d.period || '');
@@ -37,9 +37,6 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
     };
 
     const xVals = data.map(parseDatum);
-
-    // make the inner plot narrower than the available width so only the chart
-    // area shrinks while the parent container and labels remain unaffected
     const plotWidth = Math.max(120, Math.floor(w * 0.8));
     const plotTranslateX = Math.floor((w - plotWidth) / 2);
 
@@ -49,21 +46,20 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
     const plot = g.append('g').attr('transform', `translate(${plotTranslateX},0)`);
 
-    // grid lines (match the smaller plot width)
+    // grid lines
     plot.append('g')
       .call(d3.axisLeft(y).ticks(6).tickSize(-plotWidth).tickFormat(''))
       .selectAll('line')
       .attr('stroke', darkMode ? '#0f3460' : '#eee');
 
-    // y axis (left edge of the plot)
+    // y axis
     const yAxisGroup = plot.append('g')
       .call(d3.axisLeft(y).ticks(6));
-    // brighten axis labels in dark mode but keep font-size unchanged
     yAxisGroup.selectAll('text').attr('fill', darkMode ? '#ffffff' : '#2c3e50').style('font-size', '12px');
     yAxisGroup.select('.domain').attr('stroke', darkMode ? '#0f3460' : '#ccc');
     yAxisGroup.selectAll('line').attr('stroke', darkMode ? '#0f3460' : '#ccc');
 
-    // line (drawn inside the smaller plot group)
+    // line drawn inside the smaller plot group
     const line = d3.line().x((d, i) => x(xVals[i])).y(d => y(+d.aqi)).curve(d3.curveMonotoneX);
 
     plot.append('path')
@@ -73,7 +69,6 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
       .attr('stroke-width', 2.6)
       .attr('d', line);
 
-    // points exactly at each date (inside plot)
     plot.selectAll('.pt')
       .data(data)
       .enter().append('circle')
@@ -85,7 +80,6 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.2);
 
-    // Ensure x-axis ticks align but use the smaller plot width; rotate labels
     g.select('.x-axis')?.remove();
     const maxTicks = Math.max(3, Math.floor(plotWidth / 70));
     let tickValues;
@@ -109,14 +103,14 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
       .attr('dx', '0')
       .attr('dy', '1.1em');
 
-    // focus tooltip elements (attached to plot so coordinates match the smaller chart)
+    // focus tooltip elements 
     const focus = plot.append('g').attr('class', 'focus').attr('display', 'none');
     focus.append('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', h).attr('stroke', darkMode ? '#999' : '#666').attr('stroke-dasharray', '3 3');
     focus.append('circle').attr('r', 5).attr('fill', color).attr('stroke', '#fff');
     const tooltipBg = focus.append('rect').attr('class', 'tooltip-bg').attr('x', 8).attr('y', -30).attr('rx', 4).attr('ry', 4).attr('width', 80).attr('height', 28).attr('fill', darkMode ? '#111827' : '#fff').attr('stroke', darkMode ? '#333' : '#ddd').attr('opacity', 0.95);
     const tooltipText = focus.append('text').attr('x', 12).attr('y', -12).attr('fill', darkMode ? '#eee' : '#000').style('font-size', '12px');
 
-    // overlay for mouse events (only over the smaller plot)
+    // overlay for mouse events 
     plot.append('rect')
       .attr('class', 'overlay')
       .attr('width', plotWidth)

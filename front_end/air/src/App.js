@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import D3LineChart from './components/D3LineChart';
 
-// --- API Service and Helpers ---
+// API Service and Helpers 
 const API_BASE_URL = 'http://localhost:8000';
 
 const pollutantMapping = {
@@ -82,7 +82,7 @@ const getAQICategory = (aqi) => {
     return { category: 'Extremely Poor', color: '#800000', description: 'Hazardous air quality. Emergency conditions', range: [200, Infinity] };
 };
 
-// Shared common theme helper (headers / common colors)
+// Shared common theme helper for dark/light mode
 const getCommonTheme = (darkMode) => ({
     headerColor: darkMode ? '#cccccc' : '#000000', // lighter headings in dark mode
     headerSecondary: darkMode ? '#e6e6e6' : '#2c3e50',
@@ -94,7 +94,7 @@ const getCommonTheme = (darkMode) => ({
     shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)'
 });
 
-// --- Input Form Component ---
+// Input Form Component
 const InputForm = ({ onSubmit, loading, darkMode }) => {
     const cities = ['Adelaide', 'Brisbane', 'Canberra', 'Darwin', 'Hobart', 'Launceston', 'Melbourne', 'Newcastle', 'Perth', 'Sydney', 'Wollongong'];
     const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
@@ -143,7 +143,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
         }
     };
     
-    // UPDATED: Handles toggling individual pollutants and automatically updates the "All" state
+    // Handles toggling individual pollutants and automatically updates the "All" state
     const handlePollutantChange = (pollutant) => {
         setFormData(prev => {
             let newPollutants;
@@ -163,7 +163,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
         });
     };
 
-    // UNCHANGED: Handles "Select All"
+    // Handles "Select All"
     const handleSelectAll = (e) => {
         const isChecked = e.target.checked;
         setFormData(prev => {
@@ -182,7 +182,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
     // Updated Grid for Pollutants: 3 columns now
     const checkboxGroupStyle = { 
         display: 'grid', 
-        gridTemplateColumns: '1fr 1fr 1fr', // Changed to 3 columns to fit "All"
+        gridTemplateColumns: '1fr 1fr 1fr', 
         gap: '8px', padding: '10px', border: `1px solid ${localTheme.border}`, borderRadius: '4px', 
         backgroundColor: darkMode ? '#0f2030' : '#f9f9f9' 
     };
@@ -231,7 +231,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
                     }}>
                         <input
                             type="checkbox"
-                            checked={isAllSelected} // This is the key: it checks itself if length matches.
+                            checked={isAllSelected} // The key checks itself if length matches.
                             onChange={handleSelectAll}
                             style={{ marginRight: '10px' }}
                         />
@@ -280,7 +280,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
     );
 };
 
-// --- Overall AQI Summary Component ---
+// Overall AQI Summary Component
 const OverallAQISummary = ({ maxAqi, city, date, predictions, darkMode }) => {
     const localTheme = {
         cardBg: darkMode ? '#16213e' : '#fff',
@@ -464,7 +464,7 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
         overflowWrap: 'break-word' 
     };
 
-    // Variance Check SETUP ---
+    // Variance Check Setup
     const predictedVariance = getValueWithFallback(prediction, 'variance', -1); // Use -1 as sentinel for missing/unpredicted
     const varianceValue = parseFloat(predictedVariance);
     const isVarianceZeroOrMissing = varianceValue === 0;
@@ -505,7 +505,6 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
                 {otherData.map(([key, value]) => {
                     const formattedKey = formatKeyName(key);
 
-                    // --- NEW: Conditional Warning for Zero Variance ---
                     if (key === 'variance' && isVarianceZeroOrMissing) {
                         return (
                             <tr key={key} style={{ borderBottom: `1px solid ${localTheme.border}`, backgroundColor: '#fef3f2' }}>
@@ -518,7 +517,6 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
                             </tr>
                         );
                     }
-                    // --- END NEW LOGIC ---
 
                     return (
                         <tr key={key} style={{ borderBottom: `1px solid ${localTheme.border}` }}>
@@ -539,7 +537,7 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
     );
 };
 
-// --- Other Components ---
+// Other Components
 const HealthRecommendations = ({ maxAqi, darkMode }) => {
     const getRecommendations = (aqi) => {
         if (aqi <= 50) {
@@ -699,9 +697,6 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
         const pollutantPrediction = predictions?.find(p => p.pollutant === selectedPollutant);
         return pollutantPrediction ? parseFloat(pollutantPrediction.AQI).toFixed(2) : 'N/A';
     };
-
-    // Use shared getPollutantColor helper (supports darkMode)
-    // const getPollutantColor = (pollutant) => { ... } replaced by global helper
 
     const exportToCSV = () => {
         const headers = ['Date', `${selectedPollutant} AQI`];
@@ -869,8 +864,6 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
         </div>
     );
 };  
-
-
 
 const CombinedChart = ({ predictions, darkMode }) => {
     const localTheme = {
@@ -1071,7 +1064,6 @@ const App = () => {
     React.useEffect(() => {
         const checkServerHealth = async () => {
             try {
-                // Assuming 'api.healthCheck' is defined and works
                 const health = await api.healthCheck(); 
                 setServerStatus(health);
             } catch (err) {
@@ -1080,13 +1072,13 @@ const App = () => {
             }
         };
 
-        // 1. Run immediately on component mount
+        // Run immediately on component mount
         checkServerHealth();
 
-        // 2. Run dynamically every 15 seconds (15000 milliseconds)
+        // Run dynamically every 15 seconds (15000 milliseconds)
         const intervalId = setInterval(checkServerHealth, 15000);
 
-        // 3. Clean up the interval when the component unmounts
+        // Clean up the interval when the component unmounts
         return () => clearInterval(intervalId);
     }, []); // Empty dependency array means this runs only on mount/unmount
 
@@ -1117,7 +1109,6 @@ const App = () => {
     const date = predictions?.[0]?.date || '';
 
     return (
-        // Global Padding: 10px
        <div style={{ minHeight: '100vh', backgroundColor: theme.background, padding: '10px', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s ease' }}>
             
             <div style={{ 
@@ -1228,10 +1219,10 @@ const App = () => {
                         {/* CHART ROW 2: Historical and Trend Charts (Single Column) */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '20px' }}>
                             <HistoricalComparison 
-    currentAQI={maxAqi} 
-    predictions={predictions}
-    darkMode={darkMode}
-/>
+                                currentAQI={maxAqi} 
+                                predictions={predictions}
+                                darkMode={darkMode}
+                            />
                             <AQITrendChart predictions={predictions} darkMode={darkMode} />
                         </div>
 
@@ -1246,20 +1237,20 @@ const App = () => {
                         }}>
                             <h3 style={{ marginTop: 0, color: getCommonTheme(darkMode).headerColor, marginBottom: '15px' }}>About This Prediction</h3>
                             <div style={{ fontSize: '14px', color: getCommonTheme(darkMode).textSecondary, lineHeight: '1.8' }}>
-                                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
-                                                    <strong>Model:</strong> Combined AI ensemble using multiple machine learning algorithms
-                                                </p>
-                                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
-                                                    <strong>Pollutants:</strong> {predictions.map(p => p.pollutant).join(', ')} 
-                                                </p>
-                                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
-                                                    <strong>Prediction Date:</strong> {new Date(date).toLocaleDateString('en-AU', { 
-                                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                                                    })}
-                                                </p>
-                                                <p style={{ margin: 0, color: getCommonTheme(darkMode).textSecondary }}>
-                                                    <strong>Interpretation:</strong> The overall health risk is assessed based on the pollutant that yields the highest AQI value (Max AQI).
-                                                </p>
+                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
+                                    <strong>Model:</strong> Combined AI ensemble using multiple machine learning algorithms
+                                </p>
+                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
+                                    <strong>Pollutants:</strong> {predictions.map(p => p.pollutant).join(', ')} 
+                                </p>
+                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
+                                    <strong>Prediction Date:</strong> {new Date(date).toLocaleDateString('en-AU', { 
+                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                                    })}
+                                </p>
+                                <p style={{ margin: 0, color: getCommonTheme(darkMode).textSecondary }}>
+                                    <strong>Interpretation:</strong> The overall health risk is assessed based on the pollutant that yields the highest AQI value (Max AQI).
+                                </p>
                             </div>
                         </div>
                     </>

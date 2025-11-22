@@ -73,7 +73,7 @@ async def get_prediction(request: PredictionRequest):
         if prediction_result:
             return {
                 "message": "Prediction computed successfully and CSV saved.",
-                "data": prediction_result[0] # Assuming only one row of prediction is returned
+                "data": prediction_result[0] 
             }
         else:
             raise HTTPException(status_code=404, detail="No prediction data generated.")
