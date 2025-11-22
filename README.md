@@ -4,6 +4,8 @@ This project is a full-stack web application built using React (front-end) and F
 
 The system provides interactive charts, user input forms, data validation, and real-time API requests to the prediction engine.
 
+Video Link: https://studentnewintiedumy-my.sharepoint.com/:v:/g/personal/j22037392_student_newinti_edu_my/IQC9k2YKbNGUSIQSp3B7YRMfAXr5Gv-Ed9bMdPcqjY2uNcU?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=bACuxV
+
 ## Features
 **1. User Input Form**
 
