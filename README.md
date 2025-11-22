@@ -136,6 +136,12 @@ Next, run the command:
 uvicorn app.main:app --reload
 ```
 
+or
+
+```bash
+python -m uvicorn app.main:app --reload
+```
+
 The uvicorn server should be running on **http://localhost:8000**
 
 The docs are open at: **http://localhost:8000/docs**
