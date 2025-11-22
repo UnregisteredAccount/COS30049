@@ -469,6 +469,10 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
     const varianceValue = parseFloat(predictedVariance);
     const isVarianceZeroOrMissing = varianceValue === 0;
 
+    const predictedCount = getValueWithFallback(prediction, 'count', -1); // Use -1 as sentinel
+    const countValue = parseFloat(predictedCount);
+    const isCountZeroOrMissing = countValue <= 0;
+
     return (
         <div style={{ 
         padding: '20px', backgroundColor: localTheme.cardBg, borderRadius: '8px', 
@@ -513,6 +517,19 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
                                 </td>
                                 <td style={{ ...tableValueStyle, color: '#dc3545', fontWeight: 'bold' }}>
                                     <span role="img" aria-label="warning">⚠️</span> Not Found (Zero)
+                                </td>
+                            </tr>
+                        );
+                    }
+
+                    if (key === 'count' && isCountZeroOrMissing) {
+                        return (
+                            <tr key={key} style={{ borderBottom: `1px solid ${localTheme.border}`, backgroundColor: '#fff3cd' }}>
+                                <td style={{ padding: '5px 0', fontWeight: '600', color: '#856404' }}>
+                                    {formattedKey}:
+                                </td>
+                                <td style={{ ...tableValueStyle, color: '#856404', fontWeight: 'bold' }}>
+                                    <span role="img" aria-label="alert">❗</span> Zero (Insufficient Data)
                                 </td>
                             </tr>
                         );
@@ -941,34 +958,39 @@ const AQITrendChart = ({ predictions, darkMode }) => {
 
     // Fetch 7-day forecast from backend
     useEffect(() => {
-        const fetchForecast = async () => {
-            if (!selectedPollutant || selectedPollutant === 'All Pollutants') return;
+    const fetchForecast = async () => {
+        if (!selectedPollutant || selectedPollutant === 'All Pollutants') return;
+        
+        setLoading(true);
+        setError(null);
+        
+        try {
+            // Use the date from predictions instead of today
+            const startDate = predictions?.[0]?.date ? new Date(predictions[0].date) : new Date();
+            const forecastPromises = [];
             
-            setLoading(true);
-            setError(null);
-            
-            try {
-                const today = new Date();
-                const forecastPromises = [];
-                
-                // Generate next 7 days
-                for (let i = 0; i < 7; i++) {
-                    const forecastDate = new Date(today);
-                    forecastDate.setDate(today.getDate() + i);
-                    const dateString = forecastDate.toISOString().split('T')[0];
+            // Generate next 7 days from the selected/predicted date
+            for (let i = 0; i < 7; i++) {
+                const forecastDate = new Date(startDate);
+                forecastDate.setDate(startDate.getDate() + i);
+                const dateString = forecastDate.toISOString().split('T')[0];
                     
                     forecastPromises.push(
                         api.predictAirQuality(dateString, city, [selectedPollutant])
                             .then(results => ({
-                                date: forecastDate.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+                                date: new Date(dateString),   
+                                label: forecastDate.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }), 
                                 aqi: parseFloat(results[0]?.AQI) || 0,
-                                fullDate: dateString
+                                fullDate: dateString  
+
                             }))
                             .catch(() => ({
-                                date: forecastDate.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+                                date: new Date(dateString),
+                                label: forecastDate.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
                                 aqi: 0,
                                 fullDate: dateString,
                                 error: true
+
                             }))
                     );
                 }

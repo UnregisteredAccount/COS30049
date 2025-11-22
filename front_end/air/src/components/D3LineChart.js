@@ -27,14 +27,24 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
     const w = Math.max(200, width) - margin.left - margin.right;
     const h = height - margin.top - margin.bottom;
 
-    // parse dates
     const parseDatum = (d) => {
-      if (d.fullDate) return new Date(d.fullDate);
-      const iso = Date.parse(d.date || d.period || '');
-      if (!isNaN(iso)) return new Date(iso);
-      const p = d3.timeParse('%b %d')(d.date || d.period);
-      return p || new Date();
-    };
+  // Priority 1: Use fullDate if available (most reliable)
+  if (d.fullDate) return new Date(d.fullDate);
+  
+  // Priority 2: Try to parse date or period as ISO string
+  if (d.date) {
+    const parsed = new Date(d.date);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  
+  if (d.period) {
+    const parsed = new Date(d.period);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  
+  // Fallback: return current date
+  return new Date();
+};
 
     const xVals = data.map(parseDatum);
     const plotWidth = Math.max(120, Math.floor(w * 0.8));
