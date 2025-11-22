@@ -4,6 +4,7 @@ import {
     ResponsiveContainer, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, 
     PolarRadiusAxis, Radar 
 } from 'recharts';
+import D3LineChart from './components/D3LineChart';
 
 // --- API Service and Helpers ---
 const API_BASE_URL = 'http://localhost:8000';
@@ -1029,23 +1030,9 @@ const AQITrendChart = ({ predictions, darkMode }) => {
             )}
 
             {!loading && forecastData.length > 0 && (
-                <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={forecastData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line 
-                            type="monotone" 
-                            dataKey="aqi" 
-                            stroke="#e74c3c" 
-                            strokeWidth={3} 
-                            dot={{ r: 5 }} 
-                            name={`${selectedPollutant} AQI`} 
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
+                <div style={{ width: '100%', height: 250 }}>
+                    <D3LineChart data={forecastData} darkMode={darkMode} color={getPollutantColor(selectedPollutant, darkMode)} height={250} />
+                </div>
             )}
         </div>
     );
