@@ -23,7 +23,8 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
 
     if (!data || data.length === 0) return;
 
-    const margin = { top: 14, right: 16, bottom: 40, left: 40 };
+    // increase right margin so final x-axis label doesn't get clipped
+    const margin = { top: 14, right: 48, bottom: 40, left: 40 };
     const w = Math.max(200, width) - margin.left - margin.right;
     const h = height - margin.top - margin.bottom;
 
@@ -38,6 +39,19 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
 
     const xVals = data.map(parseDatum);
 
+    // make the provided color a bit brighter on dark mode for better contrast
+    const strokeColor = (() => {
+      try {
+        if (darkMode && color) {
+          const c = d3.color(color);
+          return c ? c.brighter(0.8).formatHex() : color;
+        }
+      } catch (e) {
+        // fallback to provided color
+      }
+      return color;
+    })();
+
     const x = d3.scaleTime().domain(d3.extent(xVals)).range([0, w]);
     const y = d3.scaleLinear().domain([0, d3.max(data, d => +d.aqi) * 1.1 || 100]).nice().range([h, 0]);
 
@@ -47,13 +61,13 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
     g.append('g')
       .call(d3.axisLeft(y).ticks(6).tickSize(-w).tickFormat(''))
       .selectAll('line')
-      .attr('stroke', darkMode ? '#0f3460' : '#eee');
+      .attr('stroke', darkMode ? '#1b4f80' : '#eee');
 
     // y axis
     g.append('g')
       .call(d3.axisLeft(y).ticks(6))
       .selectAll('text')
-      .attr('fill', darkMode ? '#333' : '#2c3e50');
+      .attr('fill', darkMode ? '#e6eef8' : '#2c3e50');
 
     // line
     const line = d3.line().x((d, i) => x(xVals[i])).y(d => y(+d.aqi)).curve(d3.curveMonotoneX);
@@ -61,7 +75,7 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
     g.append('path')
       .datum(data)
       .attr('fill', 'none')
-      .attr('stroke', color)
+      .attr('stroke', strokeColor)
       .attr('stroke-width', 2.6)
       .attr('d', line);
 
@@ -73,7 +87,7 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
       .attr('cx', (d, i) => x(xVals[i]))
       .attr('cy', d => y(+d.aqi))
       .attr('r', 4)
-      .attr('fill', color)
+      .attr('fill', strokeColor)
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.2);
 
@@ -84,15 +98,15 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
       .attr('transform', `translate(0,${h})`)
       .call(d3.axisBottom(x).tickValues(xVals).tickFormat(d3.timeFormat('%b %d')))
       .selectAll('text')
-      .attr('fill', darkMode ? '#333' : '#2c3e50')
+      .attr('fill', darkMode ? '#e6eef8' : '#2c3e50')
       .style('font-size', '12px');
 
     // focus tooltip elements
     const focus = g.append('g').attr('class', 'focus').attr('display', 'none');
-    focus.append('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', h).attr('stroke', darkMode ? '#999' : '#666').attr('stroke-dasharray', '3 3');
-    focus.append('circle').attr('r', 5).attr('fill', color).attr('stroke', '#fff');
-    const tooltipBg = focus.append('rect').attr('class', 'tooltip-bg').attr('x', 8).attr('y', -30).attr('rx', 4).attr('ry', 4).attr('width', 80).attr('height', 28).attr('fill', darkMode ? '#111827' : '#fff').attr('stroke', darkMode ? '#333' : '#ddd').attr('opacity', 0.95);
-    const tooltipText = focus.append('text').attr('x', 12).attr('y', -12).attr('fill', darkMode ? '#eee' : '#000').style('font-size', '12px');
+    focus.append('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', h).attr('stroke', darkMode ? '#cfd8e3' : '#666').attr('stroke-dasharray', '3 3');
+    focus.append('circle').attr('r', 5).attr('fill', strokeColor).attr('stroke', '#fff');
+    const tooltipBg = focus.append('rect').attr('class', 'tooltip-bg').attr('x', 8).attr('y', -30).attr('rx', 4).attr('ry', 4).attr('width', 80).attr('height', 28).attr('fill', darkMode ? '#1f2937' : '#fff').attr('stroke', darkMode ? '#3b4a5a' : '#ddd').attr('opacity', 0.95);
+    const tooltipText = focus.append('text').attr('x', 12).attr('y', -12).attr('fill', darkMode ? '#f5f7fb' : '#000').style('font-size', '12px');
 
     // overlay for mouse events
     g.append('rect')
@@ -126,7 +140,7 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
 
   return (
     <div ref={containerRef} style={{ width: '100%' }}>
-      <svg ref={svgRef} width="100%" height={height} style={{ display: 'block' }} />
+      <svg ref={svgRef} width="100%" height={height} style={{ display: 'block', overflow: 'visible' }} />
     </div>
   );
 };
