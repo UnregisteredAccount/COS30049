@@ -710,9 +710,11 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
     // Use shared getPollutantColor helper (supports darkMode)
     // const getPollutantColor = (pollutant) => { ... } replaced by global helper
 
-    const exportToCSV = () => {
-        const headers = ['Date', `${selectedPollutant} AQI`];
-        const rows = historicalData.map(d => [d.period, d.aqi]);
+   const exportToCSV = () => {
+        const city = predictions?.[0]?.city || 'Unknown';
+        
+        const headers = ['City', 'Date', `${selectedPollutant} AQI`];
+        const rows = historicalData.map(d => [city, d.period, d.aqi]);
         const csvContent =
             'data:text/csv;charset=utf-8,' +
             [headers, ...rows].map(e => e.join(',')).join('\n');
@@ -720,7 +722,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `historical_comparison_${selectedPollutant}.csv`);
+        link.setAttribute('download', `historical_comparison_${city}_${selectedPollutant}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
