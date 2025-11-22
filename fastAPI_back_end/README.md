@@ -1,139 +1,92 @@
-**💨 Air Quality Analysis and Prediction Model Toolkit**
-This project integrates multiple machine learning models—Linear Regression, Random Forest, and Decision Tree—to predict air pollutant statistics, estimate pollutant medians, and classify AQI severity for a given city and pollutant. The pipeline is designed to process air quality data and generate step-by-step predictions saved as CSV files. 
+# 🌏 API Endpoint Documentation 
 
-This project features a comprehensive collection of classes to assist in gauging the air quality in australia. Each class has its own distinct objective, ranging from AQI computation and visualization, to machine learning-based forecasting. Depending on their main objective, classes also contain methods of producing relevant output or results in the form of .png plots or .csv files. The modular class-based architecture makes the codebase highly organized, extensible, and easy to maintain. The classes provided are also easily customizable; they can be tailored to follow specific needs and can be easily implemented into other projects, and can be used with different datasets, so long as the data in those datasets are formatted according to datasets (.csv) used in the project. 
+## GET /  
 
-**🗂️ Project Structure**
-.
-├── aqi_calculation/
-│   └── final_aqi_determinator.py                   # Max AQI determinator (Optional)
-│   └── pollutant_aqi_calculator.py                 # Used to generate .csv to train Decision Tree Model
-├── combined_model/
-│   └── combined_model.py 
-├── data/                                           # Stores data
-├── decision_tree/
-│   └── decision_tree_aqi_severity.py 
-├── evaluation/
-│   └── evaluator.py
-├── linear_regression/
-│   └── linear_regression_pollutant_predictor.py
-├── models/                                         # Stores models
-├── predictions/
-│   └── combined_model/                             # Stores combined model predictions
-├── random_forest/
-│   └── random_forest_pollutant_median.py
-├── relation_plotters/
-│   └── median_aqi_plotter.py                       # Plots max AQI against median (Optional)
-├── results/                                        # Mostly for Testing, as main output is stored in predictions/combined_model/ to support main functionaility
-│   └── csvs/
-│       └── decision_tree/
-│       └── linear_regression/
-│       └── random_forest/
-│   └── plots/
-│       └── decision_tree/
-│       └── linear_regression/
-│       └── random_forest/
-│   └── predictions/
-│       └── decision_tree/
-│       └── random_forest/
-│   └── txt/
-│       └── decision_tree/
-├── test.py                                         # For testing purposes
-├── README.md
-└── main.py
-
-**📝 Features**
-Classes in the project allow for:
-
-    AQI Calculation: Computes AQI values from pollutant data and determines final AQI rankings.
-
-    Visualization: Plots AQI against pollutant medians.
-
-    Linear Regression: Predicts pollutant medians
-
-    Random Forest: Predicts pollutant medians
-
-    Decision Tree: AQI severity classification (based on non-AQI calculated data)
-
-    Evaluation: Custom evaluator class is used to evaluate models
-
-Model workings are based on select city(**Example: Sydney**) and pollutant fields(**co, no2, o3, so2, pm2.5, pm10, and 'all' pollutants**).
-   
-Results are saved into organized folders, of which includes .csv and .png files (.txt for classification report of decision tree model).
-
-The **main functionality** of the project is defined in the **combined_model class** that utilizes a sequence of Linear Regression, Random Forest, and Decision Tree to predict values from just a date, city and pollutant of choice. 
-
-**🤖 Setting Up the environment**
-There are multiple ways to set up the environment and run the main program (do replace venv_name with the name of your choosing for your virtual environment):
-
-**🐍 1. Conda**
+Returns basic metadata:
 
 ```bash
-conda --version                                                 # Make sure conda is installed (Either Anaconda or Miniconda)
+{ 
 
-conda create --name venv_name python=3.13.7                     # Ceate a virtual environment with python 3.13.7 (recommended)
+    "title": "Air Quality Prediction Service", 
 
-conda activate venv_name                                        # Activate virtual environment
+    "version": "1.0.0", 
 
-conda install pandas scikit-learn matplotlib numpy joblib tqdm  #Install Necessary Libraries using conda 
-#or 
-pip install pandas scikit-learn matplotlib numpy joblib tqdm    #Install Necessary Libraries using PIP 
+    "documentation_url": "/docs", 
+
+    "status": "Running", 
+
+    "model_loaded": true  
+
+} 
 ```
+
+## POST /predict
+
+This endpoint utilizes a request body:
 
 ```bash
-python main.py      # To run the combine_model via the "main" program   
+class PredictionRequest(BaseModel):
+    date: str     # e.g., "2025-11-21"
+    city: str     # e.g., "Sydney"
+    pollutant: str  # e.g., "so2"
 ```
+
+Computes and returns predicted data in the following format:
 
 ```bash
-conda deactivate    # Remember to deactivate the virtual environment when you are done
-```
----
+{ 
 
-**🔧 2. Terminal PIP**
+  "Date": "2025-11-21", 
+
+  "City": "Sydney", 
+
+  "Pollutant": "so2", 
+
+  "count": 49.95666931076594, 
+
+  "variance": 0.0, 
+
+  "min": 0.5279183259260525, 
+
+  "max": 3.2700834673901333, 
+
+  "median": 0.9549999999999993, 
+
+  "AQI": 0.23695488721804492, 
+
+  "Rounded_AQI": 0, 
+
+  "AQI_Severity": "1 (Very Good)" 
+
+} 
+```
+
+Exceptions:
+
+**404** Not Found Error: No prediction data generated (No return data)
+
+**500** Internal Server Error: Prediction computation failed due to internal error: *exception*
+
+**503** Service Unavailable error: Model service is unavailable due to a startup error (Model not loaded)
+
+## GET /health
+
+Returns a health check on the availability of the back-end server, used for monitoring and diagnostic purposes
 
 ```bash
-python --version                                                # Make sure python is installed (Recommended: version 3.13.7)
+{ 
 
-python -m venv venv_name                                        # Ceate a virtual environment
+  "status": "ok", 
 
-venv_name\Scripts\activate                                      # Activate the Virtual Environment (Windows)
-#or
-source venv_name/bin/activate                                   # Activate the Virtual Environment (macOS/Linux)
+  "model_loaded": true 
 
-pip install pandas scikit-learn matplotlib numpy joblib tqdm    #Install Necessary Libraries using PIP
-```
+}
+``` 
 
-```bash
-python main.py      # To run the combine_model via the "main" program   
-```
+## GET /docs
 
-```bash
-deactivate          # Remember to deactivate the virtual environment when you are done
-```
----
+SwaggeUI API documentation automatically generated by FastAPI
 
-**ᯓ Running the Combined Model**
-As mentioned before, each class can be created and methods can be called according to the needs of the user (such as in the **test.py** file).
-
-However, an example of the functioning code can be seen in the **main.py** file. 
-
-One is able to declare new filepaths for training data in the construction of new model objects based on the classes.  
-
-**📁 Output Files**
-After the main program execution, the following files will be saved in ./predictions/combined_model/:
-
-    City_step1_lr.csv: Output after Linear Regression
-
-    City_step2_rf.csv: Output after Random Forest
-
-    City_step3_dt_final_combined.csv: Final output with AQI severity classification, which is also the main output file.
-
-**📌 Notes**
-Input CSV must contain columns like Date, City, Pollutant, and pollutant values.
-
-The Decision Tree model expects a predefined set of pollutants for AQI classification.
-
-Intermediate files are useful for debugging and model evaluation.
 
 
 
