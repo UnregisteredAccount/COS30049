@@ -17,6 +17,28 @@ const pollutantMapping = {
     'SO2': 'so2'
 };
 
+// Shared pollutant color helper that supports dark mode variants
+const getPollutantColor = (pollutant, darkMode = false) => {
+    const light = {
+        'PM2.5': '#e74c3c',
+        'PM10': '#e67e22',
+        'NO2': '#f39c12',
+        'O3': '#3498db',
+        'CO': '#9b59b6',
+        'SO2': '#1abc9c'
+    };
+    const dark = {
+        'PM2.5': '#ff6b6b', // slightly brighter for dark bg
+        'PM10': '#ff9a49',
+        'NO2': '#ffd166',
+        'O3': '#63aef7',
+        'CO': '#c77bd9',
+        'SO2': '#48d1b6'
+    };
+    const map = darkMode ? dark : light;
+    return map[pollutant] || (darkMode ? '#63aef7' : '#3498db');
+}
+
 const api = {
     predictAirQuality: async (date, city, pollutants) => {
         const apiPollutants = pollutants.map(p => pollutantMapping[p]);
@@ -66,10 +88,31 @@ const getAQICategory = (aqi) => {
     return { category: 'Extremely Poor', color: '#800000', description: 'Hazardous air quality. Emergency conditions', range: [200, Infinity] };
 };
 
+// Shared common theme helper (headers / common colors)
+const getCommonTheme = (darkMode) => ({
+    headerColor: darkMode ? '#cccccc' : '#000000', // lighter headings in dark mode
+    headerSecondary: darkMode ? '#e6e6e6' : '#2c3e50',
+    text: darkMode ? '#eeeeee' : '#2c3e50',
+    textSecondary: darkMode ? '#999999' : '#555555', // slightly darker secondary text in dark mode
+    cardBg: darkMode ? '#16213e' : '#ffffff',
+    border: darkMode ? '#0f3460' : '#dddddd',
+    inputBg: darkMode ? '#0f3460' : '#ffffff',
+    shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)'
+});
+
 // --- Input Form Component ---
-const InputForm = ({ onSubmit, loading }) => {
+const InputForm = ({ onSubmit, loading, darkMode }) => {
     const cities = ['Adelaide', 'Brisbane', 'Canberra', 'Darwin', 'Hobart', 'Launceston', 'Melbourne', 'Newcastle', 'Perth', 'Sydney', 'Wollongong'];
     const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
+
+    const localTheme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#555',
+        border: darkMode ? '#0f3460' : '#ddd',
+        inputBg: darkMode ? '#0f3460' : '#fff',
+        shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)'
+    };
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -137,22 +180,24 @@ const InputForm = ({ onSubmit, loading }) => {
     };
 
     const inputStyle = {
-        width: '100%', padding: '12px', marginBottom: '5px', border: '1px solid #ddd',
-        borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box',
+        width: '100%', padding: '12px', marginBottom: '5px', border: `1px solid ${localTheme.border}`,
+        borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box', backgroundColor: localTheme.inputBg, color: localTheme.text
     };
     const errorStyle = { color: '#ff0000', fontSize: '12px', marginBottom: '10px' };
-    const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333', fontSize: '14px' };
+    const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: '600', color: localTheme.text, fontSize: '14px' };
     // Updated Grid for Pollutants: 3 columns now
     const checkboxGroupStyle = { 
         display: 'grid', 
         gridTemplateColumns: '1fr 1fr 1fr', // Changed to 3 columns to fit "All"
-        gap: '8px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', 
-        backgroundColor: '#f9f9f9' 
+        gap: '8px', padding: '10px', border: `1px solid ${localTheme.border}`, borderRadius: '4px', 
+        backgroundColor: darkMode ? '#0f2030' : '#f9f9f9' 
     };
     
+    const common = getCommonTheme(darkMode);
+
     return (
-        <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>Air Quality Prediction Input</h2>
+        <div style={{ padding: '25px', backgroundColor: localTheme.cardBg, borderRadius: '8px', boxShadow: localTheme.shadow }}>
+            <h2 style={{ marginTop: 0, color: common.headerColor, marginBottom: '20px' }}>Air Quality Prediction Input</h2>
             
             <div style={{ marginBottom: '20px' }}>
                 <label style={labelStyle}>Select Date *</label>
@@ -161,7 +206,7 @@ const InputForm = ({ onSubmit, loading }) => {
                     name="date" 
                     value={formData.date} 
                     onChange={handleChange} 
-                    style={{...inputStyle, borderColor: errors.date ? '#ff0000' : '#ddd'}}
+                    style={{...inputStyle, borderColor: errors.date ? '#ff0000' : localTheme.border}}
                     max="2030-12-31"
                 />
                 {errors.date && <div style={errorStyle}>{errors.date}</div>}
@@ -173,7 +218,7 @@ const InputForm = ({ onSubmit, loading }) => {
                     name="city" 
                     value={formData.city} 
                     onChange={handleChange} 
-                    style={{...inputStyle, borderColor: errors.city ? '#ff0000' : '#ddd'}}
+                    style={{...inputStyle, borderColor: errors.city ? '#ff0000' : localTheme.border, backgroundColor: localTheme.inputBg}}
                 >
                     {cities.map(city => <option key={city} value={city}>{city}</option>)}
                 </select>
@@ -182,13 +227,13 @@ const InputForm = ({ onSubmit, loading }) => {
 
             <div style={{ marginBottom: '20px' }}>
                 <label style={labelStyle}>Select Pollutant(s) *</label>
-                <div style={{...checkboxGroupStyle, borderColor: errors.pollutants ? '#ff0000' : '#ddd'}}>
+                <div style={{...checkboxGroupStyle, borderColor: errors.pollutants ? '#ff0000' : localTheme.border}}>
                     {/* Select All Option: Checked state relies on the isAllSelected variable */}
                     <label style={{ 
                         display: 'flex', alignItems: 'center', cursor: 'pointer', 
-                        fontWeight: '600', fontSize: '14px', color: '#3498db', 
+                        fontWeight: '600', fontSize: '14px', color: common.headerColor, 
                         gridColumn: 'span 3', 
-                        borderBottom: '1px dashed #ddd', paddingBottom: '5px', marginBottom: '5px' 
+                        borderBottom: `1px dashed ${localTheme.border}`, paddingBottom: '5px', marginBottom: '5px' 
                     }}>
                         <input
                             type="checkbox"
@@ -211,14 +256,16 @@ const InputForm = ({ onSubmit, loading }) => {
                                 onChange={() => handlePollutantChange(pollutant)}
                                 style={{ marginRight: '10px' }}
                             />
-                            {pollutant}
+                            <span style={{ color: common.headerColor, fontWeight: 600 }}>
+                                {pollutant}
+                            </span>
                         </label>
                     ))}
                 </div>
                 {errors.pollutants && <div style={errorStyle}>{errors.pollutants}</div>}
             </div>
 
-            <div style={{ padding: '15px', backgroundColor: '#e8f4f8', borderRadius: '4px', marginBottom: '20px', fontSize: '13px', color: '#555' }}>
+            <div style={{ padding: '15px', backgroundColor: darkMode ? '#0f2b3a' : '#e8f4f8', borderRadius: '4px', marginBottom: '20px', fontSize: '13px', color: common.textSecondary }}>
                 <strong>Info:</strong> This will request a prediction for **all selected pollutants**.
             </div>
 
@@ -240,7 +287,15 @@ const InputForm = ({ onSubmit, loading }) => {
 };
 
 // --- Overall AQI Summary Component ---
-const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
+const OverallAQISummary = ({ maxAqi, city, date, predictions, darkMode }) => {
+    const localTheme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#666',
+        border: darkMode ? '#0f3460' : '#eee',
+        shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 15px rgba(0,0,0,0.2)'
+    };
+    const common = getCommonTheme(darkMode);
     const { category, color, description } = getAQICategory(maxAqi);
     
     // Define all standard sections up to AQI 500.
@@ -286,8 +341,8 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
     };
 
     return (
-        <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 15px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+        <div style={{ padding: '25px', backgroundColor: localTheme.cardBg, borderRadius: '8px', boxShadow: localTheme.shadow }}>
+            <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '15px', borderBottom: `1px solid ${localTheme.border}`, paddingBottom: '10px' }}>
                 Overall Predicted AQI for {city}
             </h3>
             
@@ -338,7 +393,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                             />
                         </PieChart>
                     </ResponsiveContainer>
-                    <div style={{ marginTop: '-40px', fontSize: '14px', color: '#666' }}>AQI Scale: 0 - 500</div>
+                    <div style={{ marginTop: '-40px', fontSize: '14px', color: darkMode ? '#cccccc' : common.textSecondary }}>AQI Scale: 0 - 500</div>
                 </div>
 
                 {/* AQI Summary Box Column */}
@@ -360,7 +415,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
                         <div style={{ fontSize: '56px', fontWeight: 'bold' }}>{maxAqi.toFixed(0)}</div>
                         <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{category}</div>
                     </div>
-                    <p style={{ color: '#555', fontSize: '14px', margin: 0 }}>
+                    <p style={{ color: common.textSecondary, fontSize: '14px', margin: 0 }}>
                         **Primary Concern:** This AQI level is determined by the maximum predicted pollutant ({predictions.find(p => parseFloat(p.AQI) === maxAqi)?.pollutant || 'N/A'}).
                     </p>
                 </div>
@@ -372,7 +427,7 @@ const OverallAQISummary = ({ maxAqi, city, date, predictions }) => {
 
 
 // --- Pollutant Detail Card Component ---
-const PollutantDetailCard = ({ prediction }) => {
+const PollutantDetailCard = ({ prediction, darkMode }) => {
     const getValueWithFallback = (obj, key, defaultValue = 'N/A') => {
         return obj && obj[key] !== undefined && obj[key] !== null ? obj[key] : defaultValue;
     };
@@ -396,11 +451,20 @@ const PollutantDetailCard = ({ prediction }) => {
         .replace(/\b\w/g, c => c.toUpperCase());
     };
 
+    const localTheme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#555',
+        border: darkMode ? '#0f3460' : '#eee',
+        shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 10px rgba(0,0,0,0.08)'
+    };
+    const common = getCommonTheme(darkMode);
+
     // Style to force text wrapping for long numbers/words in the table
     const tableValueStyle = { 
         padding: '5px 0', 
         textAlign: 'right', 
-        color: '#2c3e50', 
+        color: localTheme.text, 
         wordBreak: 'break-all', 
         overflowWrap: 'break-word' 
     };
@@ -412,7 +476,7 @@ const PollutantDetailCard = ({ prediction }) => {
 
     return (
         <div style={{ 
-        padding: '20px', backgroundColor: '#fff', borderRadius: '8px', 
+        padding: '20px', backgroundColor: localTheme.cardBg, borderRadius: '8px', 
         boxShadow: `0 2px 10px ${color}33`, border: `2px solid ${color}`,
         }}>
         <h4 style={{ 
@@ -439,8 +503,8 @@ const PollutantDetailCard = ({ prediction }) => {
 
         {/* Detailed Data Table */}
         {otherData.length > 0 && (
-            <div style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
-            <h5 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '14px' }}>Detailed Prediction Data:</h5>
+            <div style={{ borderTop: `1px solid ${localTheme.border}`, paddingTop: '15px' }}>
+            <h5 style={{ margin: '0 0 10px 0', color: common.headerColor, fontSize: '14px' }}>Detailed Prediction Data:</h5>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <tbody>
                 {otherData.map(([key, value]) => {
@@ -449,7 +513,7 @@ const PollutantDetailCard = ({ prediction }) => {
                     // --- NEW: Conditional Warning for Zero Variance ---
                     if (key === 'variance' && isVarianceZeroOrMissing) {
                         return (
-                            <tr key={key} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: '#fef3f2' }}>
+                            <tr key={key} style={{ borderBottom: `1px solid ${localTheme.border}`, backgroundColor: '#fef3f2' }}>
                                 <td style={{ padding: '5px 0', fontWeight: '600', color: '#dc3545' }}>
                                     {formattedKey}:
                                 </td>
@@ -462,8 +526,8 @@ const PollutantDetailCard = ({ prediction }) => {
                     // --- END NEW LOGIC ---
 
                     return (
-                        <tr key={key} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                            <td style={{ padding: '5px 0', fontWeight: '600', color: '#555' }}>
+                        <tr key={key} style={{ borderBottom: `1px solid ${localTheme.border}` }}>
+                            <td style={{ padding: '5px 0', fontWeight: '600', color: common.textSecondary }}>
                                 {formattedKey}:
                             </td>
                             <td style={tableValueStyle}> 
@@ -481,7 +545,7 @@ const PollutantDetailCard = ({ prediction }) => {
 };
 
 // --- Other Components ---
-const HealthRecommendations = ({ maxAqi }) => {
+const HealthRecommendations = ({ maxAqi, darkMode }) => {
     const getRecommendations = (aqi) => {
         if (aqi <= 50) {
             return {
@@ -524,23 +588,32 @@ const HealthRecommendations = ({ maxAqi }) => {
     const recommendations = getRecommendations(maxAqi);
     const { color } = getAQICategory(maxAqi);
 
+    const localTheme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#555',
+        border: darkMode ? '#0f3460' : '#ddd',
+        shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)'
+    };
+    const common = getCommonTheme(darkMode);
+
     return (
-        <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>Health Recommendations (Max AQI: <span style={{color}}>{maxAqi.toFixed(2)}</span>)</h3>
+        <div style={{ padding: '25px', backgroundColor: localTheme.cardBg, borderRadius: '8px', boxShadow: localTheme.shadow }}>
+            <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '20px' }}>Health Recommendations (Max AQI: <span style={{color}}>{maxAqi.toFixed(2)}</span>)</h3>
             
             <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fee', borderLeft: '4px solid #e74c3c', borderRadius: '4px' }}>
                 <h4 style={{ color: '#e74c3c', marginBottom: '8px', marginTop: 0, fontSize: '16px' }}>⚠️ General Population</h4>
-                <p style={{ color: '#555', margin: 0, fontSize: '14px' }}>{recommendations.general}</p>
+                <p style={{ color: common.textSecondary, margin: 0, fontSize: '14px' }}>{recommendations.general}</p>
             </div>
 
             <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fff3e0', borderLeft: '4px solid #e67e22', borderRadius: '4px' }}>
                 <h4 style={{ color: '#e67e22', marginBottom: '8px', marginTop: 0, fontSize: '16px' }}>👥 Sensitive Groups</h4>
-                <p style={{ color: '#555', margin: 0, fontSize: '14px' }}>{recommendations.sensitive}</p>
+                <p style={{ color: common.textSecondary, margin: 0, fontSize: '14px' }}>{recommendations.sensitive}</p>
             </div>
 
             <div style={{ padding: '15px', backgroundColor: '#e3f2fd', borderLeft: '4px solid #3498db', borderRadius: '4px' }}>
                 <h4 style={{ color: '#3498db', marginBottom: '8px', marginTop: 0, fontSize: '16px' }}>🏃 Activity Recommendations</h4>
-                <p style={{ color: '#555', margin: 0, fontSize: '14px' }}>{recommendations.activities}</p>
+                <p style={{ color: common.textSecondary, margin: 0, fontSize: '14px' }}>{recommendations.activities}</p>
             </div>
         </div>
     );    
@@ -557,6 +630,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
         border: darkMode ? '#0f3460' : '#ddd',
         inputBg: darkMode ? '#0f3460' : '#fff',
     };
+    const common = getCommonTheme(darkMode);
     
     // Find default pollutant from predictions (max AQI) or fallback to first available
     const getDefaultPollutant = () => {
@@ -631,18 +705,8 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
         return pollutantPrediction ? parseFloat(pollutantPrediction.AQI).toFixed(2) : 'N/A';
     };
 
-    // Get color based on pollutant for visual distinction
-    const getPollutantColor = (pollutant) => {
-        const colors = {
-            'PM2.5': '#e74c3c',
-            'PM10': '#e67e22',
-            'NO2': '#f39c12',
-            'O3': '#3498db',
-            'CO': '#9b59b6',
-            'SO2': '#1abc9c'
-        };
-        return colors[pollutant] || '#3498db';
-    };
+    // Use shared getPollutantColor helper (supports darkMode)
+    // const getPollutantColor = (pollutant) => { ... } replaced by global helper
 
     const exportToCSV = () => {
         const headers = ['Date', `${selectedPollutant} AQI`];
@@ -673,22 +737,22 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
             boxShadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease'
         }}>
-            <h3 style={{ marginTop: 0, color: theme.text, marginBottom: '10px' }}>
+            <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '10px' }}>
                 📈 Historical Comparison
             </h3>
             
             {/* Display current pollutant info with color coding */}
-            <div style={{ 
+                <div style={{ 
                 marginBottom: '15px', 
                 padding: '15px', 
-                backgroundColor: getPollutantColor(selectedPollutant) + '20',
-                border: `2px solid ${getPollutantColor(selectedPollutant)}`,
+                backgroundColor: getPollutantColor(selectedPollutant, darkMode) + '20',
+                border: `2px solid ${getPollutantColor(selectedPollutant, darkMode)}`,
                 borderRadius: '6px',
                 color: theme.text,
                 fontSize: '14px'
             }}>
                 <div style={{ marginBottom: '8px' }}>
-                    <strong style={{ color: getPollutantColor(selectedPollutant) }}>
+                    <strong style={{ color: getPollutantColor(selectedPollutant, darkMode) }}>
                         {selectedPollutant}
                     </strong>
                 </div>
@@ -719,7 +783,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                         width: '100%', 
                         padding: '10px', 
                         borderRadius: '4px', 
-                        border: `2px solid ${getPollutantColor(selectedPollutant)}`, 
+                        border: `2px solid ${getPollutantColor(selectedPollutant, darkMode)}`, 
                         fontSize: '14px',
                         backgroundColor: theme.inputBg,
                         color: theme.text,
@@ -795,7 +859,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                     <Legend wrapperStyle={{ color: theme.text }} />
                     <Bar 
                         dataKey="aqi" 
-                        fill={getPollutantColor(selectedPollutant)} 
+                        fill={getPollutantColor(selectedPollutant, darkMode)} 
                         name={`${selectedPollutant} AQI`}
                         animationDuration={500}
                     />
@@ -807,7 +871,15 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
 
 
 
-const CombinedChart = ({ predictions }) => {
+const CombinedChart = ({ predictions, darkMode }) => {
+    const localTheme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#555',
+        border: darkMode ? '#0f3460' : '#ddd',
+        shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)'
+    };
+    const common = getCommonTheme(darkMode);
     // Prepare data
     const data = predictions.map(p => ({
         pollutant: p.pollutant,
@@ -826,8 +898,8 @@ const CombinedChart = ({ predictions }) => {
     };
 
     return (
-        <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '10px' }}>Pollutant AQI Comparison</h3>
+        <div style={{ padding: '25px', backgroundColor: localTheme.cardBg, borderRadius: '8px', boxShadow: localTheme.shadow }}>
+            <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '10px' }}>Pollutant AQI Comparison</h3>
             <p style={chartTitleStyle}>
                 Maximum Predicted AQI: {maxAQI.toFixed(2)} ({highestCategory.category})
             </p>
@@ -858,7 +930,7 @@ const CombinedChart = ({ predictions }) => {
         </div>
     );
 };
-const AQITrendChart = ({ predictions }) => {
+const AQITrendChart = ({ predictions, darkMode }) => {
     const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
 
     // Default selected pollutant: max AQI pollutant if available, else first
@@ -920,17 +992,24 @@ const AQITrendChart = ({ predictions }) => {
         fetchForecast();
     }, [selectedPollutant, city]);
 
+    const localTheme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        border: darkMode ? '#0f3460' : '#ddd'
+    };
+    const common = getCommonTheme(darkMode);
+
     return (
-        <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '15px' }}>7-Day AQI Forecast (Live Predictions)</h3>
+        <div style={{ padding: '25px', backgroundColor: localTheme.cardBg, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '15px' }}>7-Day AQI Forecast (Live Predictions)</h3>
 
             {/* Pollutant Selector */}
             <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select Pollutant</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: localTheme.text }}>Select Pollutant</label>
                 <select
                     value={selectedPollutant}
                     onChange={(e) => setSelectedPollutant(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', fontSize: '14px' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: `1px solid ${localTheme.border}`, fontSize: '14px', backgroundColor: localTheme.cardBg, color: localTheme.text }}
                     disabled={loading}
                 >
                     {allPollutants.map(p => <option key={p} value={p}>{p}</option>)}
@@ -977,10 +1056,8 @@ const App = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [serverStatus, setServerStatus] = useState(null);
-// ADD THIS: Dark mode state
     const [darkMode, setDarkMode] = useState(false);
     
-    // ADD THIS: Dark mode theme object
     const theme = {
         background: darkMode ? '#1a1a2e' : '#ecf0f1',
         cardBg: darkMode ? '#16213e' : '#fff',
@@ -1049,7 +1126,7 @@ const App = () => {
                 overflowX: 'hidden' 
             }}>
                 <header style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    <h1 style={{ color: '#2c3e50', fontSize: '42px', marginBottom: '10px', fontWeight: 'bold' }}>
+                    <h1 style={{ color: getCommonTheme(darkMode).headerColor, fontSize: '42px', marginBottom: '10px', fontWeight: 'bold' }}>
                         🌏 Air Quality & Health Monitor
                     </h1>
                     <p style={{ color: '#7f8c8d', fontSize: '18px', marginBottom: '15px' }}>
@@ -1077,6 +1154,7 @@ const App = () => {
             fontWeight: 'bold',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
+            marginLeft: '16px',
         }}
          >
         {darkMode ? 'Light Mode' : 'Dark Mode'}
@@ -1103,7 +1181,7 @@ const App = () => {
                 }}>
                     {/* Input Form Column */}
                     <div style={{ minWidth: '250px' }}>
-                        <InputForm onSubmit={handleSubmit} loading={loading} />
+                        <InputForm onSubmit={handleSubmit} loading={loading} darkMode={darkMode} />
                     </div>
                     
                     {/* Summary Block */}
@@ -1118,8 +1196,9 @@ const App = () => {
                                 city={city} 
                                 date={date} 
                                 predictions={predictions} 
+                                darkMode={darkMode}
                             />
-                            <HealthRecommendations maxAqi={maxAqi} />
+                            <HealthRecommendations maxAqi={maxAqi} darkMode={darkMode} />
                         </div>
                     )}
                 </div>
@@ -1127,12 +1206,12 @@ const App = () => {
                 {/* Detailed Results and Visualisation Section */}
                 {predictions && predictions.length > 0 && (
                     <>
-                        <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>Detailed Pollutant Results</h3>
+                        <h3 style={{ marginTop: 0, color: getCommonTheme(darkMode).headerColor, marginBottom: '20px' }}>Detailed Pollutant Results</h3>
                         {/* Pollutant Cards remain responsive to allow multiple cards on wide screens */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                             {/* Render a card for each predicted pollutant */}
                             {predictions.map((p, index) => (
-                                <PollutantDetailCard key={index} prediction={p} />
+                                <PollutantDetailCard key={index} prediction={p} darkMode={darkMode} />
                             ))}
                         </div>
 
@@ -1141,7 +1220,7 @@ const App = () => {
                             
                             {/* 1. Combined Chart (ORDER: 1) */}
                             <div style={{ order: 1 }}>
-                                <CombinedChart predictions={predictions} /> 
+                                <CombinedChart predictions={predictions} darkMode={darkMode} /> 
                             </div>
 
                         </div>
@@ -1153,34 +1232,34 @@ const App = () => {
     predictions={predictions}
     darkMode={darkMode}
 />
-                            <AQITrendChart currentAQI={maxAqi} />
+                            <AQITrendChart predictions={predictions} darkMode={darkMode} />
                         </div>
 
                         {/* Info Box */}
                         <div style={{ 
                             padding: '25px', 
-                            backgroundColor: '#fff', 
+                            backgroundColor: theme.cardBg, 
                             borderRadius: '8px', 
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            boxShadow: theme.shadow,
                             order: 2,
                             marginBottom: '20px'
                         }}>
-                            <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '15px' }}>About This Prediction</h3>
-                            <div style={{ fontSize: '14px', color: '#555', lineHeight: '1.8' }}>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Model:</strong> Combined AI ensemble using multiple machine learning algorithms
-                                </p>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Pollutants:</strong> {predictions.map(p => p.pollutant).join(', ')} 
-                                </p>
-                                <p style={{ marginBottom: '12px' }}>
-                                    <strong>Prediction Date:</strong> {new Date(date).toLocaleDateString('en-AU', { 
-                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-                                    })}
-                                </p>
-                                <p style={{ margin: 0 }}>
-                                    <strong>Interpretation:</strong> The overall health risk is assessed based on the pollutant that yields the highest AQI value (Max AQI).
-                                </p>
+                            <h3 style={{ marginTop: 0, color: getCommonTheme(darkMode).headerColor, marginBottom: '15px' }}>About This Prediction</h3>
+                            <div style={{ fontSize: '14px', color: getCommonTheme(darkMode).textSecondary, lineHeight: '1.8' }}>
+                                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
+                                                    <strong>Model:</strong> Combined AI ensemble using multiple machine learning algorithms
+                                                </p>
+                                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
+                                                    <strong>Pollutants:</strong> {predictions.map(p => p.pollutant).join(', ')} 
+                                                </p>
+                                                <p style={{ marginBottom: '12px', color: getCommonTheme(darkMode).textSecondary }}>
+                                                    <strong>Prediction Date:</strong> {new Date(date).toLocaleDateString('en-AU', { 
+                                                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                                                    })}
+                                                </p>
+                                                <p style={{ margin: 0, color: getCommonTheme(darkMode).textSecondary }}>
+                                                    <strong>Interpretation:</strong> The overall health risk is assessed based on the pollutant that yields the highest AQI value (Max AQI).
+                                                </p>
                             </div>
                         </div>
                     </>
