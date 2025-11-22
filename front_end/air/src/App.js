@@ -74,18 +74,11 @@ const api = {
 
 // AQI Category Helper (AUS), colours according to severity categories:https://soe.dcceew.gov.au/air-quality/about-chapter/approach
 const getAQICategory = (aqi) => {
-    // 1. Very Good (0-32) - Color: Blue
     if (aqi <= 32) return { category: 'Very Good', color: '#007bff', description: 'Air quality is satisfactory', range: [0, 32] };
-    // 2. Good (33-65) - Color: Green
     if (aqi <= 65) return { category: 'Good', color: '#28a745', description: 'Acceptable for most people', range: [33, 65] };
-    // 3. Fair (66-98) - Color: Yellow
-    if (aqi <= 98) return { category: 'Fair', color: '#ffc107', description: 'Sensitive groups may experience health effects', range: [66, 98] }; 
-    // 4. Poor (99-148) - Color: Orange
+    if (aqi <= 98) return { category: 'Fair', color: '#ffc107', description: 'Sensitive groups may experience health effects', range: [66, 98] };
     if (aqi <= 148) return { category: 'Poor', color: '#fd7e14', description: 'Everyone may begin to experience health effects', range: [99, 148] };
-    // 5. Very Poor (149-199) - Color: Red
     if (aqi <= 199) return { category: 'Very Poor', color: '#dc3545', description: 'Health alert: everyone may experience serious effects', range: [149, 199] };
-
-    // 6. Extremely Poor (200+) - Color: Maroon
     return { category: 'Extremely Poor', color: '#800000', description: 'Hazardous air quality. Emergency conditions', range: [200, Infinity] };
 };
 
@@ -257,7 +250,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
                                 onChange={() => handlePollutantChange(pollutant)}
                                 style={{ marginRight: '10px' }}
                             />
-                            <span style={{ color: common.headerColor, fontWeight: 600 }}>
+                            <span style={{ color: getPollutantColor(pollutant, darkMode), fontWeight: 600 }}>
                                 {pollutant}
                             </span>
                         </label>
@@ -436,6 +429,7 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
     const predictedValue = getValueWithFallback(prediction, 'AQI', 0);
     const aqiValue = typeof predictedValue === 'number' ? predictedValue : parseFloat(predictedValue) || 0;
     const { category, color } = getAQICategory(aqiValue);
+    const pollutantColor = getPollutantColor(prediction.pollutant, darkMode);
 
     // Filter out keys already displayed or used for context
     const dataKeysToExclude = ['pollutant', 'city', 'date', 'AQI']; 
@@ -481,7 +475,7 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
         boxShadow: `0 2px 10px ${color}33`, border: `2px solid ${color}`,
         }}>
         <h4 style={{ 
-            marginTop: 0, color: color, marginBottom: '15px', borderBottom: `1px solid ${color}80`, 
+            marginTop: 0, color: pollutantColor, marginBottom: '15px', borderBottom: `1px solid ${color}80`, 
             paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
         }}>
             <span>{prediction.pollutant} Prediction</span>
@@ -792,7 +786,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                     }}
                 >
                     {allPollutants.map(p => (
-                        <option key={p} value={p}>{p}</option>
+                        <option key={p} value={p} style={{ color: getPollutantColor(p, darkMode) }}>{p}</option>
                     ))}
                 </select>
             </div>
@@ -860,10 +854,13 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                     <Legend wrapperStyle={{ color: theme.text }} />
                     <Bar 
                         dataKey="aqi" 
-                        fill={getPollutantColor(selectedPollutant, darkMode)} 
                         name={`${selectedPollutant} AQI`}
                         animationDuration={500}
-                    />
+                    >
+                        {historicalData.map((d, i) => (
+                            <Cell key={`cell-${i}`} fill={getPollutantColor(d.pollutant || selectedPollutant, darkMode)} />
+                        ))}
+                    </Bar>
                 </BarChart>
             </ResponsiveContainer>
         </div>
@@ -1010,10 +1007,23 @@ const AQITrendChart = ({ predictions, darkMode }) => {
                 <select
                     value={selectedPollutant}
                     onChange={(e) => setSelectedPollutant(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: `1px solid ${localTheme.border}`, fontSize: '14px', backgroundColor: localTheme.cardBg, color: localTheme.text }}
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '6px',
+                        border: `2px solid ${getPollutantColor(selectedPollutant, darkMode)}`,
+                        fontSize: '14px',
+                        backgroundColor: localTheme.cardBg,
+                        color: localTheme.text,
+                        fontWeight: '600',
+                        transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+                        boxShadow: `0 0 0 4px ${getPollutantColor(selectedPollutant, darkMode)}10`
+                    }}
                     disabled={loading}
                 >
-                    {allPollutants.map(p => <option key={p} value={p}>{p}</option>)}
+                    {allPollutants.map(p => (
+                        <option key={p} value={p} style={{ color: getPollutantColor(p, darkMode) }}>{p}</option>
+                    ))}
                 </select>
             </div>
 
