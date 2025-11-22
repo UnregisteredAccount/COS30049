@@ -38,35 +38,43 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
 
     const xVals = data.map(parseDatum);
 
-    const x = d3.scaleTime().domain(d3.extent(xVals)).range([0, w]);
+    // make the inner plot narrower than the available width so only the chart
+    // area shrinks while the parent container and labels remain unaffected
+    const plotWidth = Math.max(120, Math.floor(w * 0.8));
+    const plotTranslateX = Math.floor((w - plotWidth) / 2);
+
+    const x = d3.scaleTime().domain(d3.extent(xVals)).range([0, plotWidth]);
     const y = d3.scaleLinear().domain([0, d3.max(data, d => +d.aqi) * 1.1 || 100]).nice().range([h, 0]);
 
     const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    const plot = g.append('g').attr('transform', `translate(${plotTranslateX},0)`);
 
-    // grid lines
-    g.append('g')
-      .call(d3.axisLeft(y).ticks(6).tickSize(-w).tickFormat(''))
+    // grid lines (match the smaller plot width)
+    plot.append('g')
+      .call(d3.axisLeft(y).ticks(6).tickSize(-plotWidth).tickFormat(''))
       .selectAll('line')
       .attr('stroke', darkMode ? '#0f3460' : '#eee');
 
-    // y axis
-    g.append('g')
-      .call(d3.axisLeft(y).ticks(6))
-      .selectAll('text')
-      .attr('fill', darkMode ? '#333' : '#2c3e50');
+    // y axis (left edge of the plot)
+    const yAxisGroup = plot.append('g')
+      .call(d3.axisLeft(y).ticks(6));
+    // brighten axis labels in dark mode but keep font-size unchanged
+    yAxisGroup.selectAll('text').attr('fill', darkMode ? '#ffffff' : '#2c3e50').style('font-size', '12px');
+    yAxisGroup.select('.domain').attr('stroke', darkMode ? '#0f3460' : '#ccc');
+    yAxisGroup.selectAll('line').attr('stroke', darkMode ? '#0f3460' : '#ccc');
 
-    // line
+    // line (drawn inside the smaller plot group)
     const line = d3.line().x((d, i) => x(xVals[i])).y(d => y(+d.aqi)).curve(d3.curveMonotoneX);
 
-    g.append('path')
+    plot.append('path')
       .datum(data)
       .attr('fill', 'none')
       .attr('stroke', color)
       .attr('stroke-width', 2.6)
       .attr('d', line);
 
-    // points exactly at each date
-    g.selectAll('.pt')
+    // points exactly at each date (inside plot)
+    plot.selectAll('.pt')
       .data(data)
       .enter().append('circle')
       .attr('class', 'pt')
@@ -77,27 +85,41 @@ const D3LineChart = ({ data = [], darkMode = false, color = '#e74c3c', height = 
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.2);
 
-    // Ensure x-axis ticks align exactly with each data date (one tick per data point)
+    // Ensure x-axis ticks align but use the smaller plot width; rotate labels
     g.select('.x-axis')?.remove();
-    g.append('g')
+    const maxTicks = Math.max(3, Math.floor(plotWidth / 70));
+    let tickValues;
+    if (xVals.length <= maxTicks) {
+      tickValues = xVals;
+    } else {
+      const step = Math.ceil(xVals.length / maxTicks);
+      tickValues = xVals.filter((_, i) => i % step === 0);
+      const last = xVals[xVals.length - 1];
+      if (tickValues[tickValues.length - 1] !== last) tickValues.push(last);
+    }
+
+    plot.append('g')
       .attr('class', 'x-axis')
       .attr('transform', `translate(0,${h})`)
-      .call(d3.axisBottom(x).tickValues(xVals).tickFormat(d3.timeFormat('%b %d')))
+      .call(d3.axisBottom(x).tickValues(tickValues).tickFormat(d3.timeFormat('%b %d')))
       .selectAll('text')
-      .attr('fill', darkMode ? '#333' : '#2c3e50')
-      .style('font-size', '12px');
+      .attr('fill', darkMode ? '#ffffff' : '#2c3e50')
+      .style('font-size', '12px')
+      .attr('text-anchor', 'middle')
+      .attr('dx', '0')
+      .attr('dy', '1.1em');
 
-    // focus tooltip elements
-    const focus = g.append('g').attr('class', 'focus').attr('display', 'none');
+    // focus tooltip elements (attached to plot so coordinates match the smaller chart)
+    const focus = plot.append('g').attr('class', 'focus').attr('display', 'none');
     focus.append('line').attr('class', 'hover-line').attr('y1', 0).attr('y2', h).attr('stroke', darkMode ? '#999' : '#666').attr('stroke-dasharray', '3 3');
     focus.append('circle').attr('r', 5).attr('fill', color).attr('stroke', '#fff');
     const tooltipBg = focus.append('rect').attr('class', 'tooltip-bg').attr('x', 8).attr('y', -30).attr('rx', 4).attr('ry', 4).attr('width', 80).attr('height', 28).attr('fill', darkMode ? '#111827' : '#fff').attr('stroke', darkMode ? '#333' : '#ddd').attr('opacity', 0.95);
     const tooltipText = focus.append('text').attr('x', 12).attr('y', -12).attr('fill', darkMode ? '#eee' : '#000').style('font-size', '12px');
 
-    // overlay for mouse events
-    g.append('rect')
+    // overlay for mouse events (only over the smaller plot)
+    plot.append('rect')
       .attr('class', 'overlay')
-      .attr('width', w)
+      .attr('width', plotWidth)
       .attr('height', h)
       .attr('fill', 'transparent')
       .on('mouseenter', () => focus.attr('display', null))

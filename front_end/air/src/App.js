@@ -5,8 +5,7 @@ import {
     PolarRadiusAxis, Radar 
 } from 'recharts';
 import D3LineChart from './components/D3LineChart';
-import D3RadarChart from './components/D3RadarChart';
-import D3BarChart from './components/D3BarChart'
+
 // --- API Service and Helpers ---
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -75,18 +74,11 @@ const api = {
 
 // AQI Category Helper (AUS), colours according to severity categories:https://soe.dcceew.gov.au/air-quality/about-chapter/approach
 const getAQICategory = (aqi) => {
-    // 1. Very Good (0-32) - Color: Blue
     if (aqi <= 32) return { category: 'Very Good', color: '#007bff', description: 'Air quality is satisfactory', range: [0, 32] };
-    // 2. Good (33-65) - Color: Green
     if (aqi <= 65) return { category: 'Good', color: '#28a745', description: 'Acceptable for most people', range: [33, 65] };
-    // 3. Fair (66-98) - Color: Yellow
-    if (aqi <= 98) return { category: 'Fair', color: '#ffc107', description: 'Sensitive groups may experience health effects', range: [66, 98] }; 
-    // 4. Poor (99-148) - Color: Orange
+    if (aqi <= 98) return { category: 'Fair', color: '#ffc107', description: 'Sensitive groups may experience health effects', range: [66, 98] };
     if (aqi <= 148) return { category: 'Poor', color: '#fd7e14', description: 'Everyone may begin to experience health effects', range: [99, 148] };
-    // 5. Very Poor (149-199) - Color: Red
     if (aqi <= 199) return { category: 'Very Poor', color: '#dc3545', description: 'Health alert: everyone may experience serious effects', range: [149, 199] };
-
-    // 6. Extremely Poor (200+) - Color: Maroon
     return { category: 'Extremely Poor', color: '#800000', description: 'Hazardous air quality. Emergency conditions', range: [200, Infinity] };
 };
 
@@ -258,7 +250,7 @@ const InputForm = ({ onSubmit, loading, darkMode }) => {
                                 onChange={() => handlePollutantChange(pollutant)}
                                 style={{ marginRight: '10px' }}
                             />
-                            <span style={{ color: common.headerColor, fontWeight: 600 }}>
+                            <span style={{ color: getPollutantColor(pollutant, darkMode), fontWeight: 600 }}>
                                 {pollutant}
                             </span>
                         </label>
@@ -437,6 +429,7 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
     const predictedValue = getValueWithFallback(prediction, 'AQI', 0);
     const aqiValue = typeof predictedValue === 'number' ? predictedValue : parseFloat(predictedValue) || 0;
     const { category, color } = getAQICategory(aqiValue);
+    const pollutantColor = getPollutantColor(prediction.pollutant, darkMode);
 
     // Filter out keys already displayed or used for context
     const dataKeysToExclude = ['pollutant', 'city', 'date', 'AQI']; 
@@ -482,7 +475,7 @@ const PollutantDetailCard = ({ prediction, darkMode }) => {
         boxShadow: `0 2px 10px ${color}33`, border: `2px solid ${color}`,
         }}>
         <h4 style={{ 
-            marginTop: 0, color: color, marginBottom: '15px', borderBottom: `1px solid ${color}80`, 
+            marginTop: 0, color: pollutantColor, marginBottom: '15px', borderBottom: `1px solid ${color}80`, 
             paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
         }}>
             <span>{prediction.pollutant} Prediction</span>
@@ -710,11 +703,9 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
     // Use shared getPollutantColor helper (supports darkMode)
     // const getPollutantColor = (pollutant) => { ... } replaced by global helper
 
-   const exportToCSV = () => {
-        const city = predictions?.[0]?.city || 'Unknown';
-        
-        const headers = ['City', 'Date', `${selectedPollutant} AQI`];
-        const rows = historicalData.map(d => [city, d.period, d.aqi]);
+    const exportToCSV = () => {
+        const headers = ['Date', `${selectedPollutant} AQI`];
+        const rows = historicalData.map(d => [d.period, d.aqi]);
         const csvContent =
             'data:text/csv;charset=utf-8,' +
             [headers, ...rows].map(e => e.join(',')).join('\n');
@@ -722,7 +713,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `historical_comparison_${city}_${selectedPollutant}.csv`);
+        link.setAttribute('download', `historical_comparison_${selectedPollutant}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -742,9 +733,10 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
             transition: 'all 0.3s ease'
         }}>
             <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '10px' }}>
-                Historical Comparison
+                📈 Historical Comparison
             </h3>
             
+            {/* Display current pollutant info with color coding */}
                 <div style={{ 
                 marginBottom: '15px', 
                 padding: '15px', 
@@ -769,6 +761,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                 </div>
             </div>
 
+            {/* Pollutant Selector */}
             <div style={{ marginBottom: '15px' }}>
                 <label style={{ 
                     display: 'block', 
@@ -793,46 +786,39 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                     }}
                 >
                     {allPollutants.map(p => (
-                        <option key={p} value={p}>{p}</option>
+                        <option key={p} value={p} style={{ color: getPollutantColor(p, darkMode) }}>{p}</option>
                     ))}
                 </select>
             </div>
 
+            {/* Date Selector */}
+            <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: theme.text 
+                }}>
+                    Select End Date
+                </label>
+                <input
+                    type="date"
+                    value={selectedDate}
+                    min="2022-01-01"
+                    max="2025-12-31"
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: `1px solid ${theme.border}`,
+                        fontSize: '14px',
+                        backgroundColor: theme.inputBg,
+                        color: theme.text
+                    }}
+                />
+            </div>
 
-           {/* Date Selector */}
-<div style={{ marginBottom: '20px' }}>
-    <label style={{ 
-        display: 'block', 
-        marginBottom: '8px', 
-        fontWeight: '600', 
-        color: theme.text 
-    }}>
-        Select End Date
-    </label>
-    <input
-        type="date"
-        value={selectedDate}
-        min="2022-01-01"
-        max={new Date().toISOString().split('T')[0]}
-        onChange={(e) => setSelectedDate(e.target.value)}
-        style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '4px',
-            border: `1px solid ${theme.border}`,
-            fontSize: '14px',
-            backgroundColor: theme.inputBg,
-            color: theme.text
-        }}
-    />
-    <div style={{ 
-        marginTop: '5px', 
-        fontSize: '12px', 
-        color: theme.textSecondary 
-    }}>
-        Valid range: January 1, 2022 to Today
-    </div>
-</div>
             <button 
                 onClick={exportToCSV} 
                 style={{ 
@@ -852,17 +838,38 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
                 💾 Export to CSV
             </button>
 
-          <div style={{ width: '100%', height: 300 }}>
-    <D3BarChart 
-        data={historicalData} 
-        darkMode={darkMode} 
-        color={getPollutantColor(selectedPollutant, darkMode)}
-        height={300} 
-    />
-</div>
+            <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={historicalData} key={`${selectedPollutant}-${selectedDate}`}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#0f3460' : '#ccc'} />
+                    <XAxis dataKey="period" stroke={theme.text} />
+                    <YAxis stroke={theme.text} />
+                    <Tooltip 
+                        contentStyle={{ 
+                            backgroundColor: theme.cardBg, 
+                            border: `1px solid ${theme.border}`,
+                            color: theme.text
+                        }}
+                        labelStyle={{ color: getPollutantColor(selectedPollutant, darkMode) }}
+                    />
+                    <Legend
+                        payload={[{ value: `${selectedPollutant} AQI`, type: 'square', color: getPollutantColor(selectedPollutant, darkMode) }]}
+                        wrapperStyle={{ color: getPollutantColor(selectedPollutant, darkMode) }}
+                    />
+                    <Bar 
+                        dataKey="aqi" 
+                        name={`${selectedPollutant} AQI`}
+                        animationDuration={500}
+                    >
+                        {historicalData.map((d, i) => (
+                            <Cell key={`cell-${i}`} fill={getPollutantColor(d.pollutant || selectedPollutant, darkMode)} />
+                        ))}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
         </div>
     );
 };  
+
 
 
 const CombinedChart = ({ predictions, darkMode }) => {
@@ -874,12 +881,11 @@ const CombinedChart = ({ predictions, darkMode }) => {
         shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)'
     };
     const common = getCommonTheme(darkMode);
-    
     // Prepare data
     const data = predictions.map(p => ({
         pollutant: p.pollutant,
         aqi: parseFloat(p.AQI) || 0,
-        realAQI: parseFloat(p.AQI) || 0,
+        realAQI: parseFloat(p.AQI) || 0, // keep original for tooltip
     }));
 
     const maxAQI = data.length ? Math.max(...data.map(d => d.aqi)) : 0;
@@ -898,19 +904,33 @@ const CombinedChart = ({ predictions, darkMode }) => {
             <p style={chartTitleStyle}>
                 Maximum Predicted AQI: {maxAQI.toFixed(2)} ({highestCategory.category})
             </p>
-            <div style={{ width: '100%', height: 300 }}>
-                <D3RadarChart 
-                    data={data} 
-                    darkMode={darkMode} 
-                    maxAQI={maxAQI}
-                    height={300} 
-                />
-            </div>
+            <ResponsiveContainer width="100%" height={400}>
+                <RadarChart outerRadius={150} data={data}>
+                    <PolarGrid stroke="#ccc" />
+                    <PolarAngleAxis dataKey="pollutant" />
+                    <PolarRadiusAxis
+                        angle={30}
+                        domain={[0, Math.ceil(maxAQI / 50) * 50 || 200]} // dynamic scaling
+                    />
+                    <Radar
+                        name="Predicted AQI"
+                        dataKey="aqi"
+                        stroke="#8884d8"
+                        fill="#8884d8"
+                        fillOpacity={0.6}
+                    />
+                    <Tooltip
+                        formatter={(value, name, props) => {
+                            // safely get the original AQI
+                            const original = props?.payload?.realAQI ?? value;
+                            return [`${original.toFixed(2)} (scaled: ${value.toFixed(2)})`, name];
+                        }}
+                    />
+                </RadarChart>
+            </ResponsiveContainer>
         </div>
     );
 };
-
-
 const AQITrendChart = ({ predictions, darkMode }) => {
     const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
 
@@ -990,10 +1010,23 @@ const AQITrendChart = ({ predictions, darkMode }) => {
                 <select
                     value={selectedPollutant}
                     onChange={(e) => setSelectedPollutant(e.target.value)}
-                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: `1px solid ${localTheme.border}`, fontSize: '14px', backgroundColor: localTheme.cardBg, color: localTheme.text }}
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '6px',
+                        border: `2px solid ${getPollutantColor(selectedPollutant, darkMode)}`,
+                        fontSize: '14px',
+                        backgroundColor: localTheme.cardBg,
+                        color: localTheme.text,
+                        fontWeight: '600',
+                        transition: 'box-shadow 0.15s ease, border-color 0.15s ease',
+                        boxShadow: `0 0 0 4px ${getPollutantColor(selectedPollutant, darkMode)}10`
+                    }}
                     disabled={loading}
                 >
-                    {allPollutants.map(p => <option key={p} value={p}>{p}</option>)}
+                    {allPollutants.map(p => (
+                        <option key={p} value={p} style={{ color: getPollutantColor(p, darkMode) }}>{p}</option>
+                    ))}
                 </select>
             </div>
 
@@ -1085,12 +1118,12 @@ const App = () => {
 
     return (
         // Global Padding: 10px
-       <div style={{ backgroundColor: theme.background, padding: '10px', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s ease' }}>
+       <div style={{ minHeight: '100vh', backgroundColor: theme.background, padding: '10px', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s ease' }}>
             
             <div style={{ 
                 maxWidth: '1400px', 
                 margin: '0 auto',
-               
+                overflowX: 'hidden' 
             }}>
                 <header style={{ textAlign: 'center', marginBottom: '30px' }}>
                     <h1 style={{ color: getCommonTheme(darkMode).headerColor, fontSize: '42px', marginBottom: '10px', fontWeight: 'bold' }}>
