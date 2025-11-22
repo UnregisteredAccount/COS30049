@@ -543,118 +543,286 @@ const HealthRecommendations = ({ maxAqi }) => {
                 <p style={{ color: '#555', margin: 0, fontSize: '14px' }}>{recommendations.activities}</p>
             </div>
         </div>
-    );
-};const HistoricalComparison = ({ currentAQI = 0, defaultPollutant = 'SO2' }) => {
-  const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [historicalData, setHistoricalData] = useState([]);
-
-  const generateHistoricalData = (aqi, endDate) => {
-    const data = [];
-    const baseSeed = new Date(endDate).getTime() + aqi;
-    const baseAQI = Math.max(aqi, 30);
-
-    for (let i = 4; i >= 0; i--) {
-      const date = new Date(endDate);
-      date.setDate(date.getDate() - i);
-
-      const percentVariation = baseAQI * 0.35;
-      const variation1 = Math.sin(baseSeed * 0.001 + i * 1.3) * percentVariation * 0.4;
-      const variation2 = Math.sin(baseSeed * 0.003 + i * 0.7) * percentVariation * 0.3;
-      const variation3 = Math.cos(baseSeed * 0.002 + i * 2.1) * percentVariation * 0.3;
-
-      const totalVariation = variation1 + variation2 + variation3;
-
-      data.push({
-        period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
-        aqi: Math.max(5, Math.round(baseAQI + totalVariation)),
-      });
-    }
-    return data;
-  };
-
-  useEffect(() => {
-    const data = generateHistoricalData(currentAQI, selectedDate);
-    setHistoricalData(data);
-  }, [currentAQI, selectedDate]);
-
-  const exportToCSV = () => {
-    const headers = ['Date', `${defaultPollutant} AQI`];
-    const rows = historicalData.map(d => [d.period, d.aqi]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers, ...rows].map(e => e.join(',')).join('\n');
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `historical_comparison_${defaultPollutant}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  return (
-    <div style={{ padding: '25px', backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <h3 style={{ marginTop: 0, color: '#2c3e50', marginBottom: '20px' }}>📈 Historical Comparison ({defaultPollutant})</h3>
-
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#333' }}>Select End Date</label>
-        <input
-  type="date"
-  value={selectedDate}
-  min="2022-01-01"
-  max="2025-12-31"
-  onChange={(e) => setSelectedDate(e.target.value)}
-  style={{
-    width: '100%',
-    padding: '10px',
-    borderRadius: '4px',
-    border: '1px solid #ddd',
-    fontSize: '14px'
-  }}
-/>
-
-      </div>
-
-      <button 
-        onClick={exportToCSV} 
-        style={{ marginBottom: '15px', padding: '10px 15px', backgroundColor: '#2ecc71', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
-      >
-        💾 Export to CSV
-      </button>
-
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={historicalData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="period" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="aqi" fill="#3498db" name={`${defaultPollutant} AQI`} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
+    );    
 };
 
+const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = false }) => {
+    const allPollutants = ['PM2.5', 'PM10', 'NO2', 'O3', 'CO', 'SO2'];
+    
+    // Theme colors
+    const theme = {
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#555',
+        border: darkMode ? '#0f3460' : '#ddd',
+        inputBg: darkMode ? '#0f3460' : '#fff',
+    };
+    
+    // Find default pollutant from predictions (max AQI) or fallback to first available
+    const getDefaultPollutant = () => {
+        if (predictions && predictions.length > 0) {
+            const maxPred = predictions.reduce((a, b) => 
+                (parseFloat(a.AQI) > parseFloat(b.AQI) ? a : b)
+            );
+            return maxPred.pollutant;
+        }
+        return allPollutants[0];
+    };
+    
+    const [selectedPollutant, setSelectedPollutant] = useState(getDefaultPollutant());
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [historicalData, setHistoricalData] = useState([]);
+
+   // Generate data when pollutant or date changes
+    useEffect(() => {
+        const generateHistoricalData = (pollutant, endDate) => {
+            // Find the AQI for this specific pollutant
+            const pollutantPrediction = predictions?.find(p => p.pollutant === pollutant);
+            
+            const aqi = pollutantPrediction ? parseFloat(pollutantPrediction.AQI) : currentAQI;
+            
+            const data = [];
+            // Create unique seed for each pollutant using full string hash
+            let pollutantHash = 0;
+            for (let i = 0; i < pollutant.length; i++) {
+                pollutantHash = ((pollutantHash << 5) - pollutantHash) + pollutant.charCodeAt(i);
+                pollutantHash = pollutantHash & pollutantHash;
+            }
+            const baseSeed = new Date(endDate).getTime() + aqi + pollutantHash;
+            const baseAQI = Math.max(aqi, 30);
+
+            // Different variation patterns for each pollutant
+            const pollutantFactors = {
+                'PM2.5': { wave1: 1.3, wave2: 0.7, wave3: 2.1, variance: 0.4 },
+                'PM10': { wave1: 1.7, wave2: 0.9, wave3: 1.5, variance: 0.45 },
+                'NO2': { wave1: 2.1, wave2: 1.2, wave3: 0.8, variance: 0.35 },
+                'O3': { wave1: 0.9, wave2: 1.8, wave3: 2.5, variance: 0.5 },
+                'CO': { wave1: 1.5, wave2: 2.3, wave3: 1.1, variance: 0.3 },
+                'SO2': { wave1: 2.4, wave2: 0.6, wave3: 1.9, variance: 0.38 }
+            };
+            const factors = pollutantFactors[pollutant] || pollutantFactors['PM2.5'];
+
+            for (let i = 4; i >= 0; i--) {
+                const date = new Date(endDate);
+                date.setDate(date.getDate() - i);
+
+                const percentVariation = baseAQI * factors.variance;
+                const variation1 = Math.sin(baseSeed * 0.001 + i * factors.wave1) * percentVariation * 0.4;
+                const variation2 = Math.sin(baseSeed * 0.003 + i * factors.wave2) * percentVariation * 0.3;
+                const variation3 = Math.cos(baseSeed * 0.002 + i * factors.wave3) * percentVariation * 0.3;
+
+                const totalVariation = variation1 + variation2 + variation3;
+
+                data.push({
+                    period: date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+                    aqi: Math.max(5, Math.round(baseAQI + totalVariation)),
+                    pollutant: pollutant
+                });
+            }
+            return data;
+        };
+
+        const data = generateHistoricalData(selectedPollutant, selectedDate);
+        setHistoricalData(data);
+    }, [selectedPollutant, selectedDate, predictions, currentAQI]);
+    // Get current AQI for selected pollutant to display
+    const getCurrentPollutantAQI = () => {
+        const pollutantPrediction = predictions?.find(p => p.pollutant === selectedPollutant);
+        return pollutantPrediction ? parseFloat(pollutantPrediction.AQI).toFixed(2) : 'N/A';
+    };
+
+    // Get color based on pollutant for visual distinction
+    const getPollutantColor = (pollutant) => {
+        const colors = {
+            'PM2.5': '#e74c3c',
+            'PM10': '#e67e22',
+            'NO2': '#f39c12',
+            'O3': '#3498db',
+            'CO': '#9b59b6',
+            'SO2': '#1abc9c'
+        };
+        return colors[pollutant] || '#3498db';
+    };
+
+    const exportToCSV = () => {
+        const headers = ['Date', `${selectedPollutant} AQI`];
+        const rows = historicalData.map(d => [d.period, d.aqi]);
+        const csvContent =
+            'data:text/csv;charset=utf-8,' +
+            [headers, ...rows].map(e => e.join(',')).join('\n');
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `historical_comparison_${selectedPollutant}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Calculate average AQI for display
+    const avgAQI = historicalData.length > 0 
+        ? (historicalData.reduce((sum, d) => sum + d.aqi, 0) / historicalData.length).toFixed(2)
+        : 'N/A';
+
+    return (
+        <div style={{ 
+            padding: '25px', 
+            backgroundColor: theme.cardBg, 
+            borderRadius: '8px', 
+            boxShadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)',
+            transition: 'all 0.3s ease'
+        }}>
+            <h3 style={{ marginTop: 0, color: theme.text, marginBottom: '10px' }}>
+                📈 Historical Comparison
+            </h3>
+            
+            {/* Display current pollutant info with color coding */}
+            <div style={{ 
+                marginBottom: '15px', 
+                padding: '15px', 
+                backgroundColor: getPollutantColor(selectedPollutant) + '20',
+                border: `2px solid ${getPollutantColor(selectedPollutant)}`,
+                borderRadius: '6px',
+                color: theme.text,
+                fontSize: '14px'
+            }}>
+                <div style={{ marginBottom: '8px' }}>
+                    <strong style={{ color: getPollutantColor(selectedPollutant) }}>
+                        {selectedPollutant}
+                    </strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                        <strong>Current Predicted AQI:</strong> {getCurrentPollutantAQI()}
+                    </div>
+                    <div>
+                        <strong>5-Day Average:</strong> {avgAQI}
+                    </div>
+                </div>
+            </div>
+
+            {/* Pollutant Selector */}
+            <div style={{ marginBottom: '15px' }}>
+                <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: theme.text 
+                }}>
+                    Select Pollutant
+                </label>
+                <select
+                    value={selectedPollutant}
+                    onChange={(e) => setSelectedPollutant(e.target.value)}
+                    style={{ 
+                        width: '100%', 
+                        padding: '10px', 
+                        borderRadius: '4px', 
+                        border: `2px solid ${getPollutantColor(selectedPollutant)}`, 
+                        fontSize: '14px',
+                        backgroundColor: theme.inputBg,
+                        color: theme.text,
+                        fontWeight: '600'
+                    }}
+                >
+                    {allPollutants.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Date Selector */}
+            <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: '600', 
+                    color: theme.text 
+                }}>
+                    Select End Date
+                </label>
+                <input
+                    type="date"
+                    value={selectedDate}
+                    min="2022-01-01"
+                    max="2025-12-31"
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: `1px solid ${theme.border}`,
+                        fontSize: '14px',
+                        backgroundColor: theme.inputBg,
+                        color: theme.text
+                    }}
+                />
+            </div>
+
+            <button 
+                onClick={exportToCSV} 
+                style={{ 
+                    marginBottom: '15px', 
+                    padding: '10px 15px', 
+                    backgroundColor: '#2ecc71', 
+                    color: '#fff', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    fontWeight: '600',
+                    transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#27ae60'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#2ecc71'}
+            >
+                💾 Export to CSV
+            </button>
+
+            <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={historicalData} key={`${selectedPollutant}-${selectedDate}`}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#0f3460' : '#ccc'} />
+                    <XAxis dataKey="period" stroke={theme.text} />
+                    <YAxis stroke={theme.text} />
+                    <Tooltip 
+                        contentStyle={{ 
+                            backgroundColor: theme.cardBg, 
+                            border: `1px solid ${theme.border}`,
+                            color: theme.text
+                        }}
+                        labelStyle={{ color: theme.text }}
+                    />
+                    <Legend wrapperStyle={{ color: theme.text }} />
+                    <Bar 
+                        dataKey="aqi" 
+                        fill={getPollutantColor(selectedPollutant)} 
+                        name={`${selectedPollutant} AQI`}
+                        animationDuration={500}
+                    />
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};  
 
 
 
 const CombinedChart = ({ predictions }) => {
+    // Prepare data
     const data = predictions.map(p => ({
         pollutant: p.pollutant,
         aqi: parseFloat(p.AQI) || 0,
+        realAQI: parseFloat(p.AQI) || 0, // keep original for tooltip
     }));
 
-    const maxAQI = Math.max(...data.map(d => d.aqi));
+    const maxAQI = data.length ? Math.max(...data.map(d => d.aqi)) : 0;
     const highestCategory = getAQICategory(maxAQI);
 
     const chartTitleStyle = {
-        color: highestCategory.color, 
-        fontWeight: 'bold', 
-        fontSize: '18px', 
-        marginBottom: '15px' 
+        color: highestCategory.color,
+        fontWeight: 'bold',
+        fontSize: '18px',
+        marginBottom: '15px'
     };
 
     return (
@@ -663,19 +831,28 @@ const CombinedChart = ({ predictions }) => {
             <p style={chartTitleStyle}>
                 Maximum Predicted AQI: {maxAQI.toFixed(2)} ({highestCategory.category})
             </p>
-            <ResponsiveContainer width="100%" height={250}>
-                <RadarChart outerRadius={90} width={730} height={250} data={data}>
+            <ResponsiveContainer width="100%" height={300}>
+                <RadarChart outerRadius={100} data={data}>
                     <PolarGrid stroke="#ccc" />
                     <PolarAngleAxis dataKey="pollutant" />
-                    <PolarRadiusAxis angle={30} domain={[0, Math.ceil(maxAQI / 100) * 100 || 200]} /> 
-                    <Radar 
-                        name="Predicted AQI" 
-                        dataKey="aqi" 
-                        stroke="#8884d8" 
-                        fill="#8884d8" 
-                        fillOpacity={0.6} 
+                    <PolarRadiusAxis
+                        angle={30}
+                        domain={[0, Math.ceil(maxAQI / 50) * 50 || 200]} // dynamic scaling
                     />
-                    <Tooltip />
+                    <Radar
+                        name="Predicted AQI"
+                        dataKey="aqi"
+                        stroke="#8884d8"
+                        fill="#8884d8"
+                        fillOpacity={0.6}
+                    />
+                    <Tooltip
+                        formatter={(value, name, props) => {
+                            // safely get the original AQI
+                            const original = props?.payload?.realAQI ?? value;
+                            return [`${original.toFixed(2)} (scaled: ${value.toFixed(2)})`, name];
+                        }}
+                    />
                 </RadarChart>
             </ResponsiveContainer>
         </div>
@@ -800,7 +977,19 @@ const App = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [serverStatus, setServerStatus] = useState(null);
-
+// ADD THIS: Dark mode state
+    const [darkMode, setDarkMode] = useState(false);
+    
+    // ADD THIS: Dark mode theme object
+    const theme = {
+        background: darkMode ? '#1a1a2e' : '#ecf0f1',
+        cardBg: darkMode ? '#16213e' : '#fff',
+        text: darkMode ? '#eee' : '#2c3e50',
+        textSecondary: darkMode ? '#aaa' : '#555',
+        border: darkMode ? '#0f3460' : '#ddd',
+        inputBg: darkMode ? '#0f3460' : '#fff',
+        shadow: darkMode ? '0 2px 15px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)',
+    };
     // Dynamic Server Health Check Hook
     React.useEffect(() => {
         const checkServerHealth = async () => {
@@ -852,7 +1041,7 @@ const App = () => {
 
     return (
         // Global Padding: 10px
-        <div style={{ minHeight: '100vh', backgroundColor: '#ecf0f1', padding: '10px', fontFamily: 'Arial, sans-serif' }}>
+       <div style={{ minHeight: '100vh', backgroundColor: theme.background, padding: '10px', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s ease' }}>
             
             <div style={{ 
                 maxWidth: '1400px', 
@@ -875,6 +1064,24 @@ const App = () => {
                             {serverStatus.model_loaded ? '✓ Server Online' : '✗ Server Offline'}
                         </div>
                     )}
+                     <button
+        onClick={() => setDarkMode(!darkMode)}
+        style={{
+            display: 'inline-block',
+            padding: '8px 16px',
+            backgroundColor: darkMode ? '#f39c12' : '#34495e',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+        }}
+         >
+        {darkMode ? 'Light Mode' : 'Dark Mode'}
+   
+    </button>
                 </header>
 
                 {error && (
@@ -941,7 +1148,11 @@ const App = () => {
 
                         {/* CHART ROW 2: Historical and Trend Charts (Single Column) */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '20px' }}>
-                            <HistoricalComparison currentAQI={maxAqi} />
+                            <HistoricalComparison 
+    currentAQI={maxAqi} 
+    predictions={predictions}
+    darkMode={darkMode}
+/>
                             <AQITrendChart currentAQI={maxAqi} />
                         </div>
 
@@ -976,6 +1187,7 @@ const App = () => {
                 )}
             </div>
         </div>
+        
     );
 };
 
