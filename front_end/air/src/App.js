@@ -742,7 +742,7 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
             transition: 'all 0.3s ease'
         }}>
             <h3 style={{ marginTop: 0, color: common.headerColor, marginBottom: '10px' }}>
-                📈 Historical Comparison
+                Historical Comparison
             </h3>
             
                 <div style={{ 
@@ -799,33 +799,40 @@ const HistoricalComparison = ({ currentAQI = 0, predictions = [], darkMode = fal
             </div>
 
 
-            <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontWeight: '600', 
-                    color: theme.text 
-                }}>
-                    Select End Date
-                </label>
-                <input
-                    type="date"
-                    value={selectedDate}
-                    min="2022-01-01"
-                    max="2025-12-31"
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: `1px solid ${theme.border}`,
-                        fontSize: '14px',
-                        backgroundColor: theme.inputBg,
-                        color: theme.text
-                    }}
-                />
-            </div>
-
+           {/* Date Selector */}
+<div style={{ marginBottom: '20px' }}>
+    <label style={{ 
+        display: 'block', 
+        marginBottom: '8px', 
+        fontWeight: '600', 
+        color: theme.text 
+    }}>
+        Select End Date
+    </label>
+    <input
+        type="date"
+        value={selectedDate}
+        min="2022-01-01"
+        max={new Date().toISOString().split('T')[0]}
+        onChange={(e) => setSelectedDate(e.target.value)}
+        style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '4px',
+            border: `1px solid ${theme.border}`,
+            fontSize: '14px',
+            backgroundColor: theme.inputBg,
+            color: theme.text
+        }}
+    />
+    <div style={{ 
+        marginTop: '5px', 
+        fontSize: '12px', 
+        color: theme.textSecondary 
+    }}>
+        Valid range: January 1, 2022 to Today
+    </div>
+</div>
             <button 
                 onClick={exportToCSV} 
                 style={{ 
@@ -1078,12 +1085,12 @@ const App = () => {
 
     return (
         // Global Padding: 10px
-       <div style={{ minHeight: '100vh', backgroundColor: theme.background, padding: '10px', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s ease' }}>
+       <div style={{ backgroundColor: theme.background, padding: '10px', fontFamily: 'Arial, sans-serif', transition: 'background-color 0.3s ease' }}>
             
             <div style={{ 
                 maxWidth: '1400px', 
                 margin: '0 auto',
-                overflowX: 'hidden' 
+               
             }}>
                 <header style={{ textAlign: 'center', marginBottom: '30px' }}>
                     <h1 style={{ color: getCommonTheme(darkMode).headerColor, fontSize: '42px', marginBottom: '10px', fontWeight: 'bold' }}>
